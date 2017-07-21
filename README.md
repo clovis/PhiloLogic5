@@ -1,9 +1,11 @@
-![alt text](www/app/assets/img/philo.png) 4.6
+![alt text](www/app/assets/img/philo.png) 5
 ===========
 
 PhiloLogic is an XML database/search engine/web app that is designed 
 for the particular difficulties of TEI XML.  For a more theoretical 
 description, you can refer to [our research publications](<http://http://jtei.revues.org/817) or [our blog](<http://artfl.blogspot.com>).
+
+### NOTE: This is a development version based off the Python2 only PhiloLogic4. There are no stable releases yet.###
 
 
 ### Documentation ###
@@ -16,7 +18,7 @@ description, you can refer to [our research publications](<http://http://jtei.re
 
 
 ### IMPORTANT ###
-* PhiloLogic4 will only work on Unix-based systems (Linux, *BSD) though MacOS is not supported and guaranteed to work.
-* PhiloLogic4 will only run on the Apache Webserver
-* PhiloLogic4 needs to run on Python 3. We have only tested with Python 3.5 and up
-* The PhiloLogic4 Web App will only work on modern web browsers: Chrome, Firefox, Safari, Opera, Internet Explorer 9 and up
+* PhiloLogic5 will only work on Unix-based systems (Linux, *BSD) though MacOS is not supported and guaranteed to work.
+* PhiloLogic5 will only run on the Apache Webserver
+* PhiloLogic5 needs to run on Python 3. We have only tested with Python 3.5 and up
+* The PhiloLogic5 Web App will only work on modern web browsers: Chrome, Firefox, Safari, Opera, Internet Explorer 9 and up
