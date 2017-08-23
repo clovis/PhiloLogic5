@@ -17,7 +17,7 @@ IMPORTANT: Do not install from the master branch on github: this is a the develo
 
 You can find a copy of the latest version of PhiloLogic4 [here](../../../releases/).
 
-For the rest of this document, we will assume the PhiloLogic source code is installed in 
+For the rest of this document, we will assume the PhiloLogic source code is installed in
 your home directory at ~/PhiloLogic4/
 
 ### Prerequisites ###
@@ -38,7 +38,7 @@ Just run the install.sh in the top level directory to install the C Core, Python
 
 ### <a name="global-config"></a>Global Configuration ###
 
-The installer creates a file in `/etc/philologic/philologic4.cfg` which contains several important global variables:
+The installer creates a file in `/etc/philologic/philologic5.cfg` which contains several important global variables:
 
 * `database_root` defines the filesytem path to the root web directory for your PhiloLogic install such as `/var/www/html/philologic`. Make sure your user or group has full write permissions to that directory.
 * `url_root` defines the URL path to the same root directory for your philologic install, such as http://localhost/philologic/
@@ -53,10 +53,10 @@ accessible via an HTTP server configured to run Python CGI scripts.
 
 In Mac OS X systems, you will probably want to create a directory at
 ``/Library/WebServer/Documents/philologic`` to serve up PhiloLogic databases
-with the URL prefix: ``http://<your_server's_name>/philologic/``; for Linux systems, 
+with the URL prefix: ``http://<your_server's_name>/philologic/``; for Linux systems,
 the proper directory may vary, but ``/var/www/philologic/`` or ``/var/www/html/philologic/``
 
 Configuring your web server is outside of the scope of this document; but the web install
 does come with a preconfigured .htaccess file that allows you to run the Web App.
 Therefore, you need to make sure your server is configured to allow htaccess files.
-if in doubt, ask a friendly sysadmin.. 
+if in doubt, ask a friendly sysadmin..
