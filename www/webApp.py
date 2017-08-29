@@ -12,7 +12,7 @@ from philologic.runtime import WebConfig
 from philologic.runtime import WSGIHandler
 from philologic.runtime import access_control
 
-global_config = imp.load_source("philologic4", "/etc/philologic/philologic5.cfg")
+global_config = imp.load_source("philologic5", "/etc/philologic/philologic5.cfg")
 path = os.path.abspath(os.path.dirname(__file__))
 dbname = path.strip().split('/')[-1]
 

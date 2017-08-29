@@ -1,4 +1,4 @@
-#### Dependencies for PhiloLogic4 ####
+#### Dependencies for PhiloLogic5 ####
 lxml
 python-levenshtein
 natsort

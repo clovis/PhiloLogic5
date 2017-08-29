@@ -14,8 +14,8 @@ from .ObjectFormatter import (adjust_bytes, format_concordance,
 
 def get_text(hit, start_byte, length, path):
     file_path = path + '/data/TEXT/' + hit.doc.filename
-    text_file = open(file_path, "rb")
-    text_file.seek(start_byte)
+    with open(file_path, "rb") as text_file:
+        text_file.seek(start_byte)
     return text_file.read(length)
 
 
@@ -41,17 +41,21 @@ def get_text_obj(obj, config, request, word_regex, note=False, images=True):
         c = obj.db.dbh.cursor()
         c.execute("select filename from toms where philo_type='doc' and philo_id =? limit 1", (philo_id, ))
         path += "/data/TEXT/" + c.fetchone()["filename"]
-    file = open(path, 'rb')
-    start_byte = int(obj.start_byte)
-    file.seek(start_byte)
-    width = int(obj.end_byte) - start_byte
-    raw_text = file.read(width)
+    with open(path, 'rb') as file:
+        obj_start_byte = int(obj.start_byte)
+        file.seek(obj_start_byte)
+        width = int(obj.end_byte) - obj_start_byte
+        raw_text = file.read(width)
     try:
-        byte_offsets = sorted([int(byte) - start_byte for byte in request.byte])
+        byte_offsets = sorted([int(byte) - obj_start_byte for byte in request.byte])
     except ValueError:  ## request.byte contains an empty string
         byte_offsets = []
-
-    formatted_text, imgs = format_text_object(obj, raw_text, config, request, word_regex, byte_offsets=byte_offsets, note=note, images=images)
+    if request.start_byte:
+        request.start_byte = request.start_byte - obj_start_byte
+        request.end_byte = request.end_byte - obj_start_byte
+    formatted_text, imgs = format_text_object(obj, raw_text, config, request, word_regex,
+                                              byte_offsets=byte_offsets, note=note, images=images,
+                                              start_byte=request.start_byte, end_byte=request.end_byte)
     if images:
         return formatted_text, imgs
     else:

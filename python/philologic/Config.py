@@ -55,7 +55,7 @@ db_locals_defaults = OrderedDict([
 db_locals_header = '''
    # -*- coding: utf-8 -*-\n
    #########################################################\n
-   #### Database configuration options for PhiloLogic4 #####\n
+   #### Database configuration options for PhiloLogic5 #####\n
    #########################################################\n
    #### All variables must be in valid Python syntax #######\n
    #########################################################\n
@@ -645,13 +645,17 @@ web_config_defaults = OrderedDict([
                 # Dictionary lookup function. You select a word in running text and hit D, and it'll query an external dictionary
                 # and return definitions. This is currently hardcoded to ARTFL's dictionary model. To be made more generic at a later date
                 ''',
+        }),
+    ('report_error_link', {
+        'value': "",
+        'comment': '# The link should start with http:// or https://. This will display an error report link in the header and in document navigation'
     })
 ])
 
 web_config_header = '''
    # -*- coding: utf-8 -*-"
    ####################################################\n
-   #### Web configuration options for PhiloLogic4 #####\n
+   #### Web configuration options for PhiloLogic5 #####\n
    ####################################################\n
    ### All variables must be in valid Python syntax ###\n
    ####################################################\n\n\n

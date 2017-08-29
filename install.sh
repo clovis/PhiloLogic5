@@ -30,21 +30,21 @@ sudo rm -rf /var/lib/philologic5/web_app/*
 sudo cp -R www/* /var/lib/philologic5/web_app/
 sudo cp www/.htaccess  /var/lib/philologic5/web_app/
 
-# WEB_LOADER_CONFIG="\nAlias /philoload /var/lib/philologic4/web_loader
-# <Directory /var/lib/philologic4/web_loader>
+# WEB_LOADER_CONFIG="\nAlias /philoload5 /var/lib/philologic5/web_loader
+# <Directory /var/lib/philologic5/web_loader>
 # Order allow,deny
 # Allow from all
 # AllowOverride All
 # Require all granted
 # </Directory>"
-# echo "Copying web loader to /var/lib/philologic4/web_loader"
+# echo "Copying web loader to /var/lib/philologic5/web_loader"
 # echo "If you wish to enable that functionality,"
 # echo "you will need to paste the following in your Apache config:"
 # echo "$WEB_LOADER_CONFIG"
-# sudo rm -rf /var/lib/philologic4/web_loader
-# sudo cp -R extras/web_loader /var/lib/philologic4/web_loader
-# sudo cp -R www/app/assets/css/split/style.css /var/lib/philologic4/web_loader/
-# sudo cp -R www/app/assets/css/split/default_theme.css /var/lib/philologic4/web_loader/
+# sudo rm -rf /var/lib/philologic5/web_loader
+# sudo cp -R extras/web_loader /var/lib/philologic5/web_loader
+# sudo cp -R www/app/assets/css/split/style.css /var/lib/philologic5/web_loader/
+# sudo cp -R www/app/assets/css/split/default_theme.css /var/lib/philologic5/web_loader/
 
 if [ ! -f /etc/philologic/philologic5.cfg ]
     then
@@ -57,11 +57,11 @@ if [ ! -f /etc/philologic/philologic5.cfg ]
         url_root = None
         # http://localhost/philologic/ is appropriate if you don't have a DNS hostname.\n"
         echo "$url_root" | sed "s/^ *//g" | sudo tee -a /etc/philologic/philologic5.cfg > /dev/null
-        web_app_dir="## This should be set to the location of the PhiloLogic4 www directory
-        web_app_dir = '/var/lib/philologic4/web_app/'"
+        web_app_dir="## This should be set to the location of the PhiloLogic5 www directory
+        web_app_dir = '/var/lib/philologic5/web_app/'"
         echo "$web_app_dir" | sed "s/^ *//g" | sudo tee -a /etc/philologic/philologic5.cfg > /dev/null
-        theme="# Point to a default theme to use for all your PhiloLogic4 loads.\n
-        theme = '/var/lib/philologic4/web_app/app/assets/css/split/default_theme.css'"
+        theme="# Point to a default theme to use for all your PhiloLogic5 loads.\n
+        theme = '/var/lib/philologic5/web_app/app/assets/css/split/default_theme.css'"
         echo "$theme" | sed "s/^ *//g" | sudo tee -a /etc/philologic/philologic5.cfg > /dev/null
 else
     echo "\n## WARNING ##"

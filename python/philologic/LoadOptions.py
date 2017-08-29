@@ -15,19 +15,19 @@ import collections
 
 # Load global config
 config_path = os.getenv("PHILOLOGIC_CONFIG", "/etc/philologic/philologic5.cfg")
-config_file = imp.load_source("philologic4", config_path)
+config_file = imp.load_source("philologic5", config_path)
 
 if config_file.url_root is None:
     print("url_root variable is not set in /etc/philologic/philologic5.cfg", file=sys.stderr)
-    print("See https://github.com/ARTFL-Project/PhiloLogic4/blob/master/docs/installation.md.", file=sys.stderr)
+    print("See https://github.com/ARTFL-Project/PhiloLogic5/blob/master/docs/installation.md.", file=sys.stderr)
     exit()
 elif config_file.web_app_dir is None:
     print("web_app_dir variable is not set in /etc/philologic/philologic5.cfg", file=sys.stderr)
-    print("See https://github.com/ARTFL-Project/PhiloLogic4/blob/master/docs/installation.md.", file=sys.stderr)
+    print("See https://github.com/ARTFL-Project/PhiloLogic5/blob/master/docs/installation.md.", file=sys.stderr)
     exit()
 elif config_file.database_root is None:
     print("database_root variable is not set in /etc/philologic/philologic5.cfg", file=sys.stderr)
-    print("See https://github.com/ARTFL-Project/PhiloLogic4/blob/master/docs/installation.md.", file=sys.stderr)
+    print("See https://github.com/ARTFL-Project/PhiloLogic5/blob/master/docs/installation.md.", file=sys.stderr)
     exit()
 
 

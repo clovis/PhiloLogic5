@@ -12,7 +12,7 @@ from philologic.DB import DB
 
 
 class WSGIHandler(object):
-    """Class which parses the environ object and massages query arguments for PhiloLogic4."""
+    """Class which parses the environ object and massages query arguments for PhiloLogic5."""
 
     def __init__(self, environ, config):
         """Initialize class."""
@@ -143,6 +143,13 @@ class WSGIHandler(object):
         else:
             self.cgi["sort_order"] = [["rowid"]]
 
+        if "start_byte" in self.cgi:
+            if self.cgi["start_byte"][0].isdigit():
+                self.cgi["start_byte"][0] = int(self.cgi["start_byte"][0])
+        if "end_byte" in self.cgi:
+            if self.cgi["end_byte"][0].isdigit():
+                self.cgi["end_byte"][0] = int(self.cgi["end_byte"][0])
+
     def __getattr__(self, key):
         """Return query arg as attribute of class."""
         return self[key]
@@ -168,3 +175,6 @@ class WSGIHandler(object):
         """Iterate over query args."""
         for key in list(self.cgi.keys()):
             yield (key, self[key])
+
+    def __repr__(self):
+        return repr(self.cgi)

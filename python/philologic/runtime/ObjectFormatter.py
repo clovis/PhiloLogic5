@@ -29,7 +29,7 @@ VALID_HTML_TAGS = set(
      'object', 'param', 'video', 'audio', 'source', 'track', 'canvas', 'map', 'area', 'svg', 'math', 'table', 'caption',
      'colgroup', 'col', 'tbody', 'thead', 'tfoot', 'tr', 'td', 'th', 'form', 'fieldset', 'legend', 'label', 'input',
      'button', 'select', 'datalist', 'optgroup', 'option', 'textarea', 'keygen', 'output', 'progress', 'meter',
-     'details', 'summary', 'menuitem', 'menu'])
+     'details', 'summary', 'menuitem', 'menu', 'start-highlight', 'end-highlight'])
 
 
 def get_all_text(element):
@@ -172,7 +172,7 @@ def format_strip(text, word_regex, byte_offsets=None):
     return output
 
 
-def format_text_object(obj, text, config, request, word_regex, byte_offsets=None, note=False, images=True):
+def format_text_object(obj, text, config, request, word_regex, byte_offsets=None, note=False, images=True, start_byte="", end_byte=""):
     """Format text objects"""
     philo_id = obj.philo_id
     if byte_offsets is not None:
@@ -182,6 +182,8 @@ def format_text_object(obj, text, config, request, word_regex, byte_offsets=None
             new_text += text[last_offset:b] + b"<philoHighlight/>"
             last_offset = b
         text = new_text + text[last_offset:]
+    if start_byte and end_byte:
+        text = text[:start_byte] + b'<start-highlight/>' + text[start_byte:end_byte] + b'<end-highlight/>' + text[end_byte:]
     current_obj_img = []
     current_graphic_img = []
     text = "<div>" + text.decode('utf8', 'ignore') + "</div>"
@@ -378,6 +380,10 @@ def format_text_object(obj, text, config, request, word_regex, byte_offsets=None
     ## remove spaces around hyphens and apostrophes
     output = re.sub(r" ?([-';.])+ ", '\\1 ', output)
     output = convert_entities(output)
+
+    # if start_byte and end_byte:  # for highlight whole passages
+    output = output.replace('<start-highlight></start-highlight>', '<div class="passage-highlight">')
+    output = output.replace('<end-highlight></end-highlight>', '</div>')
 
     if note:  ## Notes don't need to fetch images
         return (output, {})

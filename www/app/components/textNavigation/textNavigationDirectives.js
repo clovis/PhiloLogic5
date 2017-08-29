@@ -16,7 +16,7 @@
         .directive('note', note);
 
 
-    function textObject($routeParams, $timeout, $location, request, textNavigationValues) {
+    function textObject($routeParams, $timeout, $location, request, textNavigationValues, URL) {
         var getTextObject = function(scope) {
             scope.textNav.textRendered = false;
             scope.textObjectURL = $routeParams;
@@ -29,12 +29,14 @@
             scope.textObject = {
                 citation: textNavigationValues.citation
             }; // Make sure we don't change citation if it has been already filled
+            var queryParams = $location.search();
             scope.$broadcast('domloaded');
-            request.report({
-                    report: "navigation",
-                    philo_id: scope.philoID,
-                    byte: scope.byteOffset
-                })
+            var navigationParams = { report: "navigation", philo_id: scope.philoID, byte: scope.byteOffset };
+            if (typeof(queryParams.start_byte) !== 'undefined') {
+                navigationParams.start_byte = queryParams.start_byte;
+                navigationParams.end_byte = queryParams.end_byte;
+            }
+            request.report(navigationParams)
                 .then(function(response) {
                     scope.textObject = response.data;
                     textNavigationValues.textObject = response.data;

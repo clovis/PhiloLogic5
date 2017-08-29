@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PhiloLogic4 main parser"""
+"""PhiloLogic5 main parser"""
 
 import os
 import re
@@ -160,6 +160,7 @@ class XMLParser(object):
                  known_metadata={},
                  tag_to_obj_map=DEFAULT_TAG_TO_OBJ_MAP,
                  metadata_to_parse=DEFAULT_METADATA_TO_PARSE,
+                 file_type="xml",
                  **parse_options):
         """Initialize class"""
         self.types = ["doc", "div1", "div2", "div3", "para", "sent", "word"]
