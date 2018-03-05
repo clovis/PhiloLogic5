@@ -12,7 +12,8 @@ from philologic.runtime import WebConfig
 from philologic.runtime import WSGIHandler
 from philologic.runtime import access_control
 
-global_config = imp.load_source("philologic5", "/etc/philologic/philologic5.cfg")
+config = WebConfig(os.path.abspath(os.path.dirname(__file__)))
+global_config = imp.load_source("philologic5", config.global_config_location)
 path = os.path.abspath(os.path.dirname(__file__))
 dbname = path.strip().split('/')[-1]
 
@@ -30,13 +31,13 @@ else:
 css_files = [
     "app/assets/css/bootstrap.min.css",
     "app/assets/css/split/style.css",
-    theme,
     "app/assets/css/split/searchForm.css",
     "app/assets/css/split/landingPage.css",
     "app/assets/css/split/concordanceKwic.css",
     "app/assets/css/split/timeSeries.css",
     "app/assets/css/image_gallery/blueimp-gallery.min.css",
-    "app/assets/css/split/textObjectNavigation.css"
+    "app/assets/css/split/textObjectNavigation.css",
+    theme
 ]
 
 # External JavaScript assets

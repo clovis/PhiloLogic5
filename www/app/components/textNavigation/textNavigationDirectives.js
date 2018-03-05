@@ -16,7 +16,7 @@
         .directive('note', note);
 
 
-    function textObject($routeParams, $timeout, $location, request, textNavigationValues, URL) {
+    function textObject($routeParams, $timeout, $location, request, textNavigationValues) {
         var getTextObject = function(scope) {
             scope.textNav.textRendered = false;
             scope.textObjectURL = $routeParams;
@@ -29,14 +29,12 @@
             scope.textObject = {
                 citation: textNavigationValues.citation
             }; // Make sure we don't change citation if it has been already filled
-            var queryParams = $location.search();
             scope.$broadcast('domloaded');
-            var navigationParams = { report: "navigation", philo_id: scope.philoID, byte: scope.byteOffset };
-            if (typeof(queryParams.start_byte) !== 'undefined') {
-                navigationParams.start_byte = queryParams.start_byte;
-                navigationParams.end_byte = queryParams.end_byte;
-            }
-            request.report(navigationParams)
+            request.report({
+                    report: "navigation",
+                    philo_id: scope.philoID,
+                    byte: scope.byteOffset
+                })
                 .then(function(response) {
                     scope.textObject = response.data;
                     textNavigationValues.textObject = response.data;
@@ -334,6 +332,7 @@
                 });
                 element.on('$destroy', function() {
                     angular.element('#full-size-image').off();
+                    angular.element('body').css("overflow", "auto");
                 });
             }
         }
@@ -367,18 +366,19 @@
                     angular.element('#full-size-image').off();
                     angular.element('#full-size-image').click(function() {
                         var imageIndex = scope.gallery.getIndex();
-                        var img = element.attr('large-img');
+                        var img = angular.element(".inline-img").eq(imageIndex).attr('large-img');
                         $window.open(img);
                     });
                 });
                 element.on('$destroy', function() {
                     angular.element('#full-size-image').off();
+                    angular.element('body').css("overflow", "auto");
                 });
             }
         }
     }
 
-    function externalImg() {
+    function externalImg($window) {
         return {
             restrict: 'A',
             link: function(scope, element, attrib) {
@@ -388,22 +388,16 @@
                         continuous: false,
                         thumbnailIndicators: false
                     });
-                    angular
-                        .element("#full-size-image")
-                        .off();
-                    angular
-                        .element("#full-size-image")
-                        .click(function() {
-                            var imageIndex = scope.gallery.getIndex();
-                            var img = angular
-                                .element(".inline-img")
-                                .eq(imageIndex)
-                                .attr("large-img");
-                            $window.open(img);
-                        });
+                    angular.element('#full-size-image').off();
+                    angular.element('#full-size-image').click(function() {
+                        var imageIndex = scope.gallery.getIndex();
+                        var img = element.attr('large-img');
+                        $window.open(img);
+                    });
                 });
                 element.on('$destroy', function() {
                     angular.element(element).off();
+                    angular.element('body').css("overflow", "auto");
                 });
             }
         }

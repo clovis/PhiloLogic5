@@ -123,7 +123,7 @@ class WSGIHandler(object):
                 self.approximate_ratio = 1
 
         if 'q' in self.cgi:
-            self.cgi['q'][0] = parse_query(self.cgi['q'][0])
+            self.cgi['q'][0] = parse_query(self.cgi['q'][0], config)
             if self.approximate == "yes":
                 self.cgi["original_q"] = self.cgi['q'][:]
                 self.cgi['q'][0] = find_similar_words(db, config, self)

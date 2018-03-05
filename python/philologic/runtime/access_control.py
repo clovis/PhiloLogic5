@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 
-import os
-import socket
-import imp
-import re
 import hashlib
+import imp
+import os
+import re
+import socket
+import sys
 import time
-import struct
+
 from philologic.DB import DB
 
 # These should always be allowed for local access
@@ -26,15 +27,19 @@ def check_access(environ, config):
         else:
             access_file = os.path.join(config.db_path, "data", config.access_file)
         if not os.path.isfile(access_file):
-            return make_token(incoming_address, db)
+            print("UNAUTHORIZED ACCESS TO: %s from domain %s" % (incoming_address, match_domain), file=sys.stderr)
+            return ()
     else:
-        return make_token(incoming_address, db)
+        print("UNAUTHORIZED ACCESS TO: %s from domain %s" % (incoming_address, match_domain), file=sys.stderr)
+        return ()
 
     # Load access config file. If loading fails, grant access.
     try:
         access_config = imp.load_source("access_config", access_file)
-    except:
-        return make_token(incoming_address, db)
+    except Exception as e:
+        print("ACCESS ERROR", repr(e), file=sys.stderr)
+        print("UNAUTHORIZED ACCESS TO: %s from domain %s" % (incoming_address, match_domain), file=sys.stderr)
+        return ()
 
     # Let's first check if the IP is local and grant access if it is.
     for ip_range in ip_ranges:
@@ -134,7 +139,7 @@ def check_login_info(config, request):
                     return True
             return False
     else:
-        return True  # file doesn't exists so we grant access
+        return False
 
 
 def make_token(incoming_address, db):

@@ -134,8 +134,6 @@ def format_concordance(text_in_utf8, word_regex, byte_offsets=[]):
     output = etree.tostring(xml).decode('utf8', 'ignore')
     output = re.sub(r'\A<div class="philologic-fragment">', '', output)
     output = re.sub(r'</div>\Z', '', output)
-    ## remove spaces around hyphens and apostrophes
-    output = SPACE_MATCH.sub('\\1', output)
     output = convert_entities(output)
     output = STRIP_START_PUNCTUATION.sub("", output)
     return output
@@ -377,8 +375,6 @@ def format_text_object(obj, text, config, request, word_regex, byte_offsets=None
             import sys
             print(exception, file=sys.stderr)
     output = etree.tostring(xml).decode('utf8', 'ignore')
-    ## remove spaces around hyphens and apostrophes
-    output = re.sub(r" ?([-';.])+ ", '\\1 ', output)
     output = convert_entities(output)
 
     # if start_byte and end_byte:  # for highlight whole passages

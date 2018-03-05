@@ -5,10 +5,12 @@ import json
 import sqlite3
 import sys
 import unicodedata
+from collections import defaultdict
 from operator import itemgetter
 
 from philologic.DB import DB
 from philologic.runtime.citations import citation_links, citations
+from philologic.utils import unaccent
 
 
 def landing_page_bibliography(request, config):
@@ -83,15 +85,18 @@ def group_by_range(request_range, request, config):
         is_date = True
     except ValueError:
         pass
+
+    cursor = db.dbh.cursor()
     if is_date:
         content_type = "date"
         query_range = set(range(int(request_range[0]), int(request_range[1])))
+        cursor.execute('select * from toms where philo_type="doc"')
     else:
         content_type = metadata_queried
         query_range = set(range(
             ord(request_range[0]),
             ord(request_range[1]) + 1))  # Ordinal avoids unicode issues...
-    cursor = db.dbh.cursor()
+        cursor.execute('select *, count(*) as count from toms where philo_type="doc" group by %s' % metadata_queried)
     try:
         cursor.execute('select *, count(*) as count from toms where philo_type="doc" group by %s' % metadata_queried)
     except sqlite3.OperationalError:
@@ -101,6 +106,7 @@ def group_by_range(request_range, request, config):
             "content": []
         })
     content = {}
+    date_count = defaultdict(int)
     for doc in cursor:
         normalized_test_value = ''
         if doc[metadata_queried] is None:
@@ -109,6 +115,7 @@ def group_by_range(request_range, request, config):
             try:
                 initial = int(doc[metadata_queried])
                 test_value = initial
+                date_count[initial] += 1
             except:
                 continue
         else:
@@ -117,11 +124,14 @@ def group_by_range(request_range, request, config):
             except IndexError:
                 # we have an empty string
                 continue
-            test_value = ord(initial_letter)
-            normalized_test_value = ord(''.join(
-                [i
-                 for i in unicodedata.normalize("NFKD", initial_letter)
-                 if not unicodedata.combining(i)]))
+            try:
+                test_value = ord(initial_letter)
+                normalized_test_value = ord(''.join(
+                    [i
+                    for i in unicodedata.normalize("NFKD", initial_letter)
+                    if not unicodedata.combining(i)]))
+            except TypeError:
+                continue
             initial = initial_letter.upper()
         # Are we within the range?
         if test_value in query_range or normalized_test_value in query_range:
@@ -135,14 +145,27 @@ def group_by_range(request_range, request, config):
             citation = citations(obj, links, config, report="landing_page", citation_type=citation_types)
             if initial not in content:
                 content[initial] = []
-            content[initial].append({
-                "metadata": get_all_metadata(db, doc),
-                "citation": citation,
-                "count": doc['count']
-            })
+            if is_date:
+                try:
+                    normalized_field = unaccent.smash_accents(doc["title"]).lower()
+                except:
+                    normalized_field = None
+                content[initial].append({
+                    "metadata": get_all_metadata(db, doc),
+                    "citation": citation,
+                    "count": date_count[initial],
+                    "normalized": normalized_field
+                })
+            else:
+                content[initial].append({
+                    "metadata": get_all_metadata(db, doc),
+                    "citation": citation,
+                    "count": doc['count'],
+                    "normalized": unaccent.smash_accents(doc[metadata_queried]).lower()
+                })
     results = []
-    for result_set in sorted(content.items(), key=itemgetter(0)):
-        results.append({"prefix": result_set[0], "results": result_set[1]})
+    for prefix, result_set in sorted(content.items(), key=itemgetter(0)):
+        results.append({"prefix": prefix, "results": sorted(result_set, key=lambda x: x["normalized"])})
     return json.dumps({"display_count": request.display_count,
                        "content_type": content_type,
                        "content": results})

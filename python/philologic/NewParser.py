@@ -320,10 +320,11 @@ class XMLParser(object):
         for line in self.content:
             # Let's start indexing words and objects at either the <text
             # of the <docbody tag.  We can add more.
-
-            if text_tag.search(line) or doc_body_tag.search(line) or body_tag.search(line) or closed_head_tag.search(
-                    line):
-                self.in_the_text = True
+            if self.in_the_text is False:
+                if text_tag.search(line) or doc_body_tag.search(line) or body_tag.search(line):
+                    self.in_the_text = True
+                elif self.file_type == "html" and closed_head_tag.search(line):
+                    self.in_the_text = True
 
             self.line_count += 1
 
@@ -796,6 +797,14 @@ class XMLParser(object):
                     for metadata_name, metadata_value in attrib.items():
                         self.v[div].attrib[metadata_name] = metadata_value
 
+            elif tag_name == "date":
+                div = "div%d" % self.context_div_level
+                for attrib_name, attrib_value in self.get_attributes(tag):
+                    if attrib_name == "value" or attrib_name == "when":
+                        self.v[div].attrib["div_date"] = attrib_value
+                    else:
+                        self.v[div].attrib["div_{}".format(attrib_name)] = attrib_value
+
             elif tag_name == "ref":
                 self.v.push("ref", tag_name, start_byte)
                 self.get_object_attributes(tag, tag_name, "ref")
@@ -864,9 +873,6 @@ class XMLParser(object):
                     if check_if_char_word.search(word.replace('_', "")):
                         last_word = word
                         word_pos = current_pos - len(word.encode('utf8'))
-                        if self.defined_words_to_index:
-                            if word not in self.words_to_index:
-                                return
                         if "&" in word:
                             # Convert ents to utf-8
                             word = self.latin1_ents_to_utf8(word)
@@ -902,7 +908,10 @@ class XMLParser(object):
                         word = self.remove_control_chars(word)
                         word = word.replace("_", "").strip()
                         word = word.replace(' ', '')
-                        if len(word):
+                        if len(word) > 0:
+                            if self.defined_words_to_index:
+                                if word not in self.words_to_index:
+                                    continue
                             self.v.push("word", word, word_pos)
                             if self.current_tag == "w":
                                 for attrib, value in self.word_tag_attributes:
@@ -1028,7 +1037,10 @@ class XMLParser(object):
                 while read_more:
                     look_ahead += 1
                     overflow_trap += 1
-                    next_line = self.content[look_ahead]
+                    try:
+                        next_line = self.content[look_ahead]
+                    except IndexError:
+                        break
                     if closed_head_tag.search(next_line):
                         read_more = False
                     elif overflow_trap > 50:  # Overflow trap in case you miss </head
@@ -1330,7 +1342,7 @@ char_ents = re.compile(r'\&[a-zA-Z0-9\#][a-zA-Z0-9]*;', re.I)
 newline_shortener = re.compile(r'\n\n*')
 check_if_char_word = re.compile(r'\w', re.I | re.U)
 cap_char_or_num = re.compile(r'[A-Z0-9]')  # Capitals
-ending_punctuation = re.compile(r'[%s]$' % string.punctuation)
+ending_punctuation = re.compile(r'[%s]$' % string.punctuation.replace(")", "").replace("]", ""))
 add_tag = re.compile(r'<add\W', re.I)
 seg_attrib = re.compile(r'<seg \w+=', re.I)
 abbrev_expand = re.compile(r'(<abbr .*expan=")([^"]*)("[^>]*>)([^>]*)(</abbr>)', re.I | re.M)

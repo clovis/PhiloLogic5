@@ -56,6 +56,7 @@
                     returnValue = 'col-sm-8'
                 }
             }
+            console.log(returnValue)
             return returnValue
         }
     }

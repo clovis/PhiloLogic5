@@ -161,7 +161,7 @@ class Loader(object):
     def parse_tei_header(self):
         load_metadata = []
         metadata_xpaths = self.parser_config["doc_xpaths"]
-        deleted_files = []
+        self.deleted_files = []
         for file in os.scandir(self.textdir):
             data = {"filename": file.name}
             header = ""
@@ -169,13 +169,13 @@ class Loader(object):
                 try:
                     file_content = "".join(text_file.readlines())
                 except UnicodeDecodeError:
-                    deleted_files.append(file.name)
+                    self.deleted_files.append(file.name)
                     continue
             try:
                 start_header_index = re.search(r'<teiheader', file_content, re.I).start()
                 end_header_index = re.search(r'</teiheader', file_content, re.I).start()
             except AttributeError:  # tag not found
-                deleted_files.append(file.name)
+                self.deleted_files.append(file.name)
                 continue
             header = file_content[start_header_index:end_header_index]
             header = convert_entities(header)
@@ -213,9 +213,9 @@ class Loader(object):
                 data["options"] = {"metadata_xpaths": trimmed_metadata_xpaths}
                 load_metadata.append(data)
             except etree.XMLSyntaxError:
-                deleted_files.append(f)
-        if deleted_files:
-            for f in deleted_files:
+                self.deleted_files.append(f)
+        if self.deleted_files:
+            for f in self.deleted_files:
                 print("%s has no valid TEI header or contains invalid data: removing from database load..." % f)
         return load_metadata
 
@@ -280,7 +280,13 @@ class Loader(object):
         if sort_by_field:
             return sort_list(load_metadata, sort_by_field)
         else:
-            return load_metadata
+            sorted_load_metadata = []
+            for filename in self.filenames:
+                for m in load_metadata:
+                    if m["filename"] == filename:
+                        sorted_load_metadata.append(m)
+                        break
+            return sorted_load_metadata
 
     def parse_files(self, max_workers, data_dicts=None):
         print("\n\n### Parsing files ###")
@@ -356,7 +362,7 @@ class Loader(object):
 
                 if not pid:  # the child process parses then exits.
 
-                    i = open(text["newpath"], "r", )
+                    i = open(text["newpath"], "r", newline="")
                     o = open(text["raw"], "w", )
                     print("%s: parsing %d : %s" % (time.ctime(), text["id"], text["name"]))
 

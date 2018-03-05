@@ -1,4 +1,4 @@
-#!/usr/bin env python
+#!/usr/bin env python3
 
 
 
@@ -227,9 +227,16 @@ class LoadConfig(object):
                             for line in fh:
                                 word_list.add(line.strip())
                         self.config["words_to_index"] = word_list
-                        continue
-                    if a == "plain_text_obj":
+                    elif a == "plain_text_obj":
                         if "load_filters" not in self.config:
                             self.config["load_filters"] = LoadFilters.DefaultLoadFilters
                         self.config["load_filters"].append(LoadFilters.store_in_plain_text(*value))
-                    self.config[a] = value
+                    elif a == "store_words_and_ids":
+                        if "load_filters" not in self.config:
+                            self.config["load_filters"] = LoadFilters.DefaultLoadFilters
+                        self.config["load_filters"].append(LoadFilters.store_words_and_philo_ids)
+                    else:
+                        self.config[a] = value
+            elif a == "parser_factory":
+                value = getattr(config_file, a)
+                self.config["parser_factory"] = value

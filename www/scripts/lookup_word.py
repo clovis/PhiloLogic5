@@ -7,7 +7,19 @@ import sys
 from wsgiref.handlers import CGIHandler
 
 from philologic.DB import DB
-from philologic.runtime import WebConfig, WSGIHandler, adjust_bytes
+from philologic.runtime import adjust_bytes
+
+import sys
+sys.path.append("..")
+import custom_functions
+try:
+     from custom_functions import WebConfig
+except ImportError:
+     from philologic.runtime import WebConfig
+try:
+     from custom_functions import WSGIHandler
+except ImportError:
+     from philologic.runtime import WSGIHandler
 
 
 def lookup_word_service(environ, start_response):

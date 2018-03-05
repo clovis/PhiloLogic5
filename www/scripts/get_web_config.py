@@ -4,8 +4,16 @@ import os
 import sqlite3
 from wsgiref.handlers import CGIHandler
 
+import sys
+sys.path.append("..")
+import custom_functions
+try:
+     from custom_functions import WebConfig
+except ImportError:
+     from philologic.runtime import WebConfig
+
+from philologic.Config import MakeDBConfig
 from philologic.DB import DB
-from philologic.runtime import WebConfig
 
 
 def get_web_config(environ, start_response):

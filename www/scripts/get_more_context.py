@@ -5,7 +5,19 @@ import os
 from wsgiref.handlers import CGIHandler
 
 from philologic.DB import DB
-from philologic.runtime import WebConfig, WSGIHandler, get_concordance_text
+from philologic.runtime import get_concordance_text
+
+import sys
+sys.path.append("..")
+import custom_functions
+try:
+     from custom_functions import WebConfig
+except ImportError:
+     from philologic.runtime import WebConfig
+try:
+     from custom_functions import WSGIHandler
+except ImportError:
+     from philologic.runtime import WSGIHandler
 
 
 def get_more_context(environ, start_response):

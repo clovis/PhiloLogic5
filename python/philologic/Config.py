@@ -69,6 +69,12 @@ web_config_defaults = OrderedDict([
         'value': 'noname',
         'comment': "# The dbname variable is the title name in the HTML header",
         }),
+    ('global_config_location', {
+        'value': '/etc/philologic/philologic4.cfg',
+        'comment': '''
+               # The global_config_location variable points to the global config file for philologic instances.
+               # Point to a different location if you intend to have several global config options for databases on a single server''',
+        }),
     ('access_control', {
         'value': False,
         'comment': '''
@@ -477,6 +483,65 @@ web_config_defaults = OrderedDict([
                # The link key enables linking for that metadata field. It links to the table of contents for title and filename,
                # and to a regular query for all other metadata fields.''',
         }),
+    ('table_of_contents_citation', {
+        'value': [{
+            'field': 'author',
+            'object_level': 'doc',
+            'prefix': '',
+            'suffix': '',
+            'separator': '',
+            'link': False,
+            'style': {"font-variant": "small-caps"}
+        }, {
+            'field': 'title',
+            'object_level': 'doc',
+            'prefix': '',
+            'suffix': '',
+            'separator': '',
+            'link': True,
+            'style': {"font-variant": "small-caps",
+                      "font-style": "italic",
+                      "font-weight": 700}
+        }, {
+            'field': 'year',
+            'object_level': 'doc',
+            'prefix': '&nbsp;&nbsp;[',
+            'suffix': ']',
+            'separator': '',
+            'link': False,
+            'style': {}
+        }, {
+            'field': 'pub_place',
+            'object_level': 'doc',
+            'prefix': '',
+            'suffix': '',
+            'separator': '<br>',
+            'link': False,
+            'style': {}
+        }, {
+            'field': 'publisher',
+            'object_level': 'doc',
+            'prefix': '',
+            'suffix': '',
+            'separator': ',',
+            'link': False,
+            'style': {}
+        }, {
+            'field': 'collection',
+            'object_level': 'doc',
+            'prefix': '',
+            'suffix': '',
+            'separator': '',
+            'link': False,
+            'style': {}
+        }],
+        'comment': '''
+               # The table_of_contents_citation variable define how and in what field order citations are displayed in navigation reports.
+               # You can define styling with a dictionary of valid CSS property/value such as those in the default values.
+               # begin and end keywords define what precedes and follows each field. You can use HTML for these strings.
+               # The link key enables linking for that metadata field. It links to the table of contents for title and filename,
+               # and to a metadata query for all other metadata fields.''',
+        }),
     ('navigation_citation', {
         'value': [{
             'field': 'author',
@@ -646,6 +711,15 @@ web_config_defaults = OrderedDict([
                 # and return definitions. This is currently hardcoded to ARTFL's dictionary model. To be made more generic at a later date
                 ''',
         }),
+    ('query_parser_regex', {
+        'value': [(' OR ', ' | '), ("'", " "), (';', ''), (',', ''), ('!', ''), ('　', ' '), ('｜', '|'), ('”', '"'), ('－', '-'), ('＊', '*')],
+        'comment': '''
+                # A list of pattern with replacement to be run on all incoming queries
+                # It is constructed as a list of tuples where the first element is the regex pattern to be matched
+                # and the second element is the replacement
+                # e.g.: [(" OR ", " | "), ("-", " ")]
+                ''',
+        }),
     ('report_error_link', {
         'value': "",
         'comment': '# The link should start with http:// or https://. This will display an error report link in the header and in document navigation'
@@ -713,8 +787,12 @@ class Config(object):
             if key not in written:
                 out_obj[key] = self.data[key]
                 written.append(key)
+        del out_obj["global_config_location"]
         if self.time_series_status is False:
-            out_obj["search_reports"].remove("time_series")
+            try:
+                out_obj["search_reports"].remove("time_series")
+            except ValueError:
+                pass
         return json.dumps(out_obj)
 
 

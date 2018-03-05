@@ -6,7 +6,19 @@ from wsgiref.handlers import CGIHandler
 
 from philologic.DB import DB
 from philologic.HitWrapper import ObjectWrapper
-from philologic.runtime import WebConfig, WSGIHandler, generate_text_object
+from philologic.runtime import generate_text_object
+
+import sys
+sys.path.append("..")
+import custom_functions
+try:
+     from custom_functions import WebConfig
+except ImportError:
+     from philologic.runtime import WebConfig
+try:
+     from custom_functions import WSGIHandler
+except ImportError:
+     from philologic.runtime import WSGIHandler
 
 
 def get_text_object(environ, start_response):
