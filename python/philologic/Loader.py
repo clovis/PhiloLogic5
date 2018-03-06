@@ -2,9 +2,11 @@
 """Standard PhiloLogic5 loader.
 Calls all parsing functions and store data in index"""
 
+import collections
 import imp
 import math
 import os
+import pickle
 import re
 import shutil
 import sqlite3
@@ -16,19 +18,15 @@ from lxml import etree
 from philologic.Config import MakeDBConfig, MakeWebConfig
 from philologic.PostFilters import make_sql_table
 from philologic.utils import convert_entities, pretty_print, sort_list
+from multiprocess import Pool
 
-import pickle
-import collections
 
-# Flush buffer output
-# sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+SORT_BY_WORD = "-k 2,2"
+SORT_BY_ID = "-k 3,3n -k 4,4n -k 5,5n -k 6,6n -k 7,7n -k 8,8n -k 9,9n"
+OBJECT_TYPES = ['doc', 'div1', 'div2', 'div3', 'para', 'sent', 'word']
 
-sort_by_word = "-k 2,2"
-sort_by_id = "-k 3,3n -k 4,4n -k 5,5n -k 6,6n -k 7,7n -k 8,8n -k 9,9n"
-object_types = ['doc', 'div1', 'div2', 'div3', 'para', 'sent', 'word']
-
-blocksize = 2048  # index block size.  Don't alter.
-index_cutoff = 10  # index frequency cutoff.  Don't alter.
+BLOCKSIZE = 2048  # index block size.  Don't alter.
+INDEX_CUTOFF = 10  # index frequency cutoff.  Don't alter.
 
 DEFAULT_TABLES = ('toms', 'pages', 'refs', 'graphics', 'lines', 'words')
 
@@ -36,7 +34,7 @@ DEFAULT_OBJECT_LEVEL = "doc"
 
 NAVIGABLE_OBJECTS = ('doc', 'div1', 'div2', 'div3', 'para')
 
-ParserOptions = ["parser_factory", "doc_xpaths", "token_regex", "tag_to_obj_map", "metadata_to_parse", "suppress_tags",
+PARSER_OPTIONS = ["parser_factory", "doc_xpaths", "token_regex", "tag_to_obj_map", "metadata_to_parse", "suppress_tags",
                  "load_filters", "break_apost", "chars_not_to_index", "break_sent_in_line_group", "tag_exceptions",
                  "join_hyphen_in_words", "unicode_word_breakers", "abbrev_expand", "long_word_limit",
                  "flatten_ligatures", "sentence_breakers", "file_type"]
@@ -47,11 +45,10 @@ class Loader(object):
     def __init__(self, **loader_options):
         self.omax = [1, 1, 1, 1, 1, 1, 1, 1, 1]
         self.parse_pool = None
-        self.types = object_types
+        self.types = OBJECT_TYPES
         self.tables = DEFAULT_TABLES
-        self.sort_by_word = sort_by_word
-        self.sort_by_id = sort_by_id
-
+        self.sort_by_word = SORT_BY_WORD
+        self.sort_by_id = SORT_BY_ID
         self.debug = loader_options["debug"]
         self.default_object_level = loader_options["default_object_level"]
         self.post_filters = loader_options["post_filters"]
@@ -59,44 +56,37 @@ class Loader(object):
         self.token_regex = loader_options["token_regex"]
 
         self.parser_config = {}
-        for option in ParserOptions:
+        for option in PARSER_OPTIONS:
             try:
                 self.parser_config[option] = loader_options[option]
             except KeyError:  # option hasn't been set
                 pass
 
-        try:
-            work_dir = os.path.join(loader_options["data_destination"], "WORK")
-            os.stat(work_dir)
-            self.destination = loader_options["data_destination"]
-            self.is_new = False
-        except OSError:
-            self.setup_dir(loader_options["data_destination"])  # TO TEST!!!!
-            load_config_path = os.path.join(loader_options["data_destination"], "load_config.py")
-            # Loading these from a load_config would crash the parser for a number of reasons...
-            values_to_ignore = ["load_filters", "post_filters", "parser_factory", "data_destination", "db_destination", "dbname"]
-            if loader_options["load_config"]:
-                shutil.copy(loader_options["load_config"], load_config_path)
-                config_obj = imp.load_source("external_load_config", loader_options["load_config"])
-                already_configured_values = {}
-                for attribute in dir(config_obj):
-                    if not attribute.startswith('__') and not isinstance(getattr(config_obj, attribute), collections.Callable):
-                        already_configured_values[attribute] = getattr(config_obj, attribute)
-                with open(load_config_path, "a") as load_config_copy:
-                    print("\n\n## The values below were also used for loading ##", file=load_config_copy)
-                    for option in loader_options:
-                        if option not in already_configured_values and option not in values_to_ignore and option != "web_config":
-                            print("%s = %s\n" % (option, repr(loader_options[option])), file=load_config_copy)
-            else:
-                with open(load_config_path, "w") as load_config_copy:
-                    print("#!/usr/bin/env python3", file=load_config_copy)
-                    print('"""This is a dump of the default configuration used to load this database,', file=load_config_copy)
-                    print('including non-configurable options. You can use this file to reload', file=load_config_copy)
-                    print('the current database using the -l flag. See load documentation for more details"""\n\n', file=load_config_copy)
-                    for option in loader_options:
-                        if option not in values_to_ignore and option != "web_config":
-                            print("%s = %s\n" % (option, repr(loader_options[option])), file=load_config_copy)
-            self.is_new = True
+        self.setup_dir(loader_options["data_destination"])  # TO TEST!!!!
+        load_config_path = os.path.join(loader_options["data_destination"], "load_config.py")
+        # Loading these from a load_config would crash the parser for a number of reasons...
+        values_to_ignore = ["load_filters", "post_filters", "parser_factory", "data_destination", "db_destination", "dbname"]
+        if loader_options["load_config"]:
+            shutil.copy(loader_options["load_config"], load_config_path)
+            config_obj = imp.load_source("external_load_config", loader_options["load_config"])
+            already_configured_values = {}
+            for attribute in dir(config_obj):
+                if not attribute.startswith('__') and not isinstance(getattr(config_obj, attribute), collections.Callable):
+                    already_configured_values[attribute] = getattr(config_obj, attribute)
+            with open(load_config_path, "a") as load_config_copy:
+                print("\n\n## The values below were also used for loading ##", file=load_config_copy)
+                for option in loader_options:
+                    if option not in already_configured_values and option not in values_to_ignore and option != "web_config":
+                        print("%s = %s\n" % (option, repr(loader_options[option])), file=load_config_copy)
+        else:
+            with open(load_config_path, "w") as load_config_copy:
+                print("#!/usr/bin/env python3", file=load_config_copy)
+                print('"""This is a dump of the default configuration used to load this database,', file=load_config_copy)
+                print('including non-configurable options. You can use this file to reload', file=load_config_copy)
+                print('the current database using the -l flag. See load documentation for more details"""\n\n', file=load_config_copy)
+                for option in loader_options:
+                    if option not in values_to_ignore and option != "web_config":
+                        print("%s = %s\n" % (option, repr(loader_options[option])), file=load_config_copy)
 
         if "web_config" in loader_options:
             web_config_path = os.path.join(loader_options["data_destination"], "web_config.cfg")
@@ -213,7 +203,7 @@ class Loader(object):
                 data["options"] = {"metadata_xpaths": trimmed_metadata_xpaths}
                 load_metadata.append(data)
             except etree.XMLSyntaxError:
-                self.deleted_files.append(f.name)
+                self.deleted_files.append(file.name)
         if self.deleted_files:
             for f in self.deleted_files:
                 print("%s has no valid TEI header or contains invalid data: removing from database load..." % f)
@@ -264,7 +254,7 @@ class Loader(object):
             metadata["year"] = str(earliest_year)
         return metadata
 
-    def parse_metadata(self, sort_by_field, reverse_sort=False, header="tei"):
+    def parse_metadata(self, sort_by_field, header="tei"):
         """Parsing metadata fields in TEI or Dublin Core headers"""
         print("### Parsing metadata ###", flush=True)
         print("%s: Parsing metadata in %d files..." % (time.ctime(), len(os.listdir(self.textdir))), flush=True)
@@ -279,16 +269,15 @@ class Loader(object):
         self.sort_order = sort_by_field  # to be used for the sort by concordance biblio key in web config
         if sort_by_field:
             return sort_list(load_metadata, sort_by_field)
-        else:
-            sorted_load_metadata = []
-            for filename in self.filenames:
-                for m in load_metadata:
-                    if m["filename"] == filename:
-                        sorted_load_metadata.append(m)
-                        break
-            return sorted_load_metadata
+        sorted_load_metadata = []
+        for filename in self.filenames:
+            for m in load_metadata:
+                if m["filename"] == filename:
+                    sorted_load_metadata.append(m)
+                    break
+        return sorted_load_metadata
 
-    def parse_files(self, max_workers, data_dicts=None):
+    def parse_files(self, workers, data_dicts=None):
         print("\n\n### Parsing files ###")
         os.chdir(self.workdir)  # questionable
 
@@ -337,96 +326,68 @@ class Loader(object):
                         pass
 
         print("%s: parsing %d files." % (time.ctime(), len(self.filequeue)))
-        procs = {}
-        workers = 0
-        done = 0
-        total = len(self.filequeue)
-
-        while done < total:
-            while self.filequeue and workers < max_workers:
-                # we want to have up to max_workers processes going at once.
-
-                text = self.filequeue.pop(0)  # parent and child will both know the relevant filenames
-                metadata = data_dicts.pop(0)
-                options = text["options"]
-                if "options" in metadata:  # cleanup, should do above.
-                    del metadata["options"]
-
-                pid = os.fork()  # fork returns 0 to the child, the id of the child to the parent.
-                # so pid is true in parent, false in child.
-
-                if pid:  # the parent process tracks the child
-                    procs[pid] = text["results"]  # we need to know where to grab the results from.
-                    workers += 1
-                    # loops to create up to max_workers children at any one time.
-
-                if not pid:  # the child process parses then exits.
-
-                    i = open(text["newpath"], "r", newline="")
-                    o = open(text["raw"], "w", )
-                    print("%s: parsing %d : %s" % (time.ctime(), text["id"], text["name"]))
-
-                    if "parser_factory" not in options:
-                        options["parser_factory"] = self.parser_config["parser_factory"]
-                    parser_factory = options["parser_factory"]
-                    del options["parser_factory"]
-
-                    if "load_filters" not in options:
-                        options["load_filters"] = self.parser_config["load_filters"]
-                    filters = options["load_filters"]
-                    del options["load_filters"]
-
-                    for option in ["token_regex", "suppress_tags", "break_apost", "chars_not_to_index",
-                                   "break_sent_in_line_group", "tag_exceptions", "join_hyphen_in_words",
-                                   "unicode_word_breakers", "abbrev_expand", "long_word_limit", "flatten_ligatures",
-                                   "sentence_breakers"]:
-                        try:
-                            options[option] = self.parser_config[option]
-                        except KeyError:  # option hasn't been set
-                            pass
-
-                    parser = parser_factory(o,
-                                            text["id"],
-                                            text["size"],
-                                            known_metadata=metadata,
-                                            tag_to_obj_map=self.parser_config["tag_to_obj_map"],
-                                            metadata_to_parse=self.parser_config["metadata_to_parse"],
-                                            words_to_index=self.words_to_index,
-                                            file_type=self.parser_config["file_type"],
-                                            **options)
-                    try:
-                        parser.parse(i)
-                    except RuntimeError:
-                        print("parse failure: XML stack explosion : %s" % [el.tag for el in parser.stack], file=sys.stderr)
-                        exit(1)
-                    i.close()
-                    o.close()
-
-                    for f in filters:
-                        f(self, text)
-
-                    os.system('lz4 -q %s > %s' % (text['raw'], text['raw'] + '.lz4'))
-                    os.system('rm %s' % text['raw'])
-                    os.system('lz4 -q %s > %s' % (text['words'], text['words'] + '.lz4'))
-                    os.system('rm %s' % text['words'])
-
-                    exit()
-
-            # if we are at max_workers children, or we're out of texts, the parent waits for any child to exit.
-            pid, status = os.waitpid(0,
-                                     0)  # this hangs until any one child finishes.  should check status for problems.
-            if status:
-                print("parsing failed for %s" % procs[pid])
-                exit()
-            done += 1
-            workers -= 1
-            with open(procs[pid], 'rb') as proc_fh:
+        pool = Pool(workers)
+        for results in pool.imap_unordered(self.__parse_file, zip(self.filequeue, data_dicts)):
+            with open(results, 'rb') as proc_fh:
                 vec = pickle.load(proc_fh)  # load in the results from the child's parsework() function.
-            # print vec
             self.omax = [max(x, y) for x, y in zip(vec, self.omax)]
         print("%s: done parsing" % time.ctime())
 
-    def merge_objects(self, file_num=500):
+    def __parse_file(self, file):
+        text, metadata = file
+        options = text["options"]
+        if "options" in metadata:  # cleanup, should do above.
+            del metadata["options"]
+
+        print("%s: parsing %d : %s" % (time.ctime(), text["id"], text["name"]))
+
+        if "parser_factory" not in options:
+            options["parser_factory"] = self.parser_config["parser_factory"]
+        parser_factory = options["parser_factory"]
+        del options["parser_factory"]
+
+        if "load_filters" not in options:
+            options["load_filters"] = self.parser_config["load_filters"]
+        filters = options["load_filters"]
+        del options["load_filters"]
+
+        for option in ["token_regex", "suppress_tags", "break_apost", "chars_not_to_index",
+                        "break_sent_in_line_group", "tag_exceptions", "join_hyphen_in_words",
+                        "unicode_word_breakers", "abbrev_expand", "long_word_limit", "flatten_ligatures",
+                        "sentence_breakers"]:
+            try:
+                options[option] = self.parser_config[option]
+            except KeyError:  # option hasn't been set
+                pass
+
+        with open(text["raw"], "w") as raw_file:
+            parser = parser_factory(raw_file,
+                                    text["id"],
+                                    text["size"],
+                                    known_metadata=metadata,
+                                    tag_to_obj_map=self.parser_config["tag_to_obj_map"],
+                                    metadata_to_parse=self.parser_config["metadata_to_parse"],
+                                    words_to_index=self.words_to_index,
+                                    file_type=self.parser_config["file_type"],
+                                    **options)
+            with open(text["newpath"], "r", newline="") as input_file:
+                try:
+                    parser.parse(input_file)
+                except RuntimeError:
+                    print("parse failure...", file=sys.stderr)
+                    exit(1)
+
+        for f in filters:
+            f(self, text)
+
+        os.system('lz4 -q %s > %s' % (text['raw'], text['raw'] + '.lz4'))
+        os.system('rm %s' % text['raw'])
+        os.system('lz4 -q %s > %s' % (text['words'], text['words'] + '.lz4'))
+        os.system('rm %s' % text['words'])
+        return text["results"]
+
+
+    def merge_objects(self):
         print("\n### Merge parser output ###")
 
         # Make all sorting happen in workdir rather than /tmp
@@ -482,12 +443,12 @@ class Loader(object):
         if file_type == "words":
             suffix = "/*words.sorted.lz4"
             open_file_command = "lz4cat"
-            sort_command = "LANG=C sort -S 10% -m {} {} ".format(sort_by_word, sort_by_id)
+            sort_command = "LANG=C sort -S 10% -m {} {} ".format(self.sort_by_word, self.sort_by_id)
             all_object_file = "/all_words_sorted.lz4"
         elif file_type == "toms":
             suffix = "/*.toms.sorted"
             open_file_command = "cat"
-            sort_command = "LANG=C sort -S 10% -m {} ".format(sort_by_id)
+            sort_command = "LANG=C sort -S 10% -m {} ".format(self.sort_by_id)
             all_object_file = "/all_toms_sorted.lz4"
 
         # First we split the sort workload into chunks of 100 (default defined in the file_num keyword)
@@ -497,7 +458,7 @@ class Loader(object):
             if len(files) == file_num:
                 lists_of_files.append(files)
                 files = []
-        if len(files):
+        if len(files) > 0:
             lists_of_files.append(files)
 
         # Then we run the merge sort on each chunk of 500 files and compress the result
@@ -540,8 +501,8 @@ class Loader(object):
         width = sum(x for x in vl)
         print(str(width) + " bits wide.")
 
-        hits_per_block = (blocksize * 8) // width
-        freq1 = index_cutoff
+        hits_per_block = (BLOCKSIZE * 8) // width
+        freq1 = INDEX_CUTOFF
         freq2 = 0
         offset = 0
 
@@ -551,18 +512,18 @@ class Loader(object):
         # now scan over the frequency table to figure out how wide (in bits) the frequency fields are,
         # and how large the block file will be.
         for line in open(self.workdir + "/all_frequencies"):
-            f, word = line.rsplit(" ", 1)  # uniq -c pads output on the left side, so we split on the right.
+            f, _ = line.rsplit(" ", 1)  # uniq -c pads output on the left side, so we split on the right.
             try:
                 f = int(f)
             except ValueError:
                 f = int(re.sub(r"(\d+)\D+", r'\1', f.strip()))
             if f > freq2:
                 freq2 = f
-            if f < index_cutoff:
+            if f < INDEX_CUTOFF:
                 pass  # low-frequency words don't go into the block-mode index.
             else:
                 blocks = 1 + f // (hits_per_block + 1)  # high frequency words have at least one block.
-                offset += blocks * blocksize
+                offset += blocks * BLOCKSIZE
 
         # take the log base 2 for the length of the binary representation.
         freq1_l = math.ceil(math.log(float(freq1), 2.0))
@@ -577,7 +538,7 @@ class Loader(object):
         dbs = open(self.workdir + "dbspecs4.h", "w")
         print("#define FIELDS 9", file=dbs)
         print("#define TYPE_LENGTH 1", file=dbs)
-        print("#define BLK_SIZE " + str(blocksize), file=dbs)
+        print("#define BLK_SIZE " + str(BLOCKSIZE), file=dbs)
         print("#define FREQ1_LENGTH " + str(freq1_l), file=dbs)
         print("#define FREQ2_LENGTH " + str(freq2_l), file=dbs)
         print("#define OFFST_LENGTH " + str(offset_l), file=dbs)

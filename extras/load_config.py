@@ -237,6 +237,6 @@ sentence_breakers = []
 ###########################################
 
 # This is where you define your own parser which needs to have the same signature
-# as the one located in python/philologic/NewParser.py
-from philologic import NewParser
-parser_factory = NewParser.XMLParser
+# as the one located in python/philologic/Parser.py
+from philologic import Parser
+parser_factory = Parser.XMLParser

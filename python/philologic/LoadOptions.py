@@ -8,7 +8,7 @@ import sys
 from glob import glob
 from optparse import OptionParser
 
-from philologic import Loader, LoadFilters, PostFilters, NewParser, PlainTextParser
+from philologic import Loader, LoadFilters, PostFilters, Parser, PlainTextParser
 from philologic.utils import pretty_print
 import collections
 
@@ -44,17 +44,17 @@ class LoadOptions(object):
         self.values["load_filters"] = LoadFilters.DefaultLoadFilters
         self.values["post_filters"] = PostFilters.DefaultPostFilters
         self.values["plain_text_obj"] = []
-        self.values["parser_factory"] = NewParser.XMLParser
-        self.values["token_regex"] = NewParser.TOKEN_REGEX
-        self.values["doc_xpaths"] = NewParser.DEFAULT_DOC_XPATHS
-        self.values["tag_to_obj_map"] = NewParser.DEFAULT_TAG_TO_OBJ_MAP
-        self.values["metadata_to_parse"] = NewParser.DEFAULT_METADATA_TO_PARSE
+        self.values["parser_factory"] = Parser.XMLParser
+        self.values["token_regex"] = Parser.TOKEN_REGEX
+        self.values["doc_xpaths"] = Parser.DEFAULT_DOC_XPATHS
+        self.values["tag_to_obj_map"] = Parser.DEFAULT_TAG_TO_OBJ_MAP
+        self.values["metadata_to_parse"] = Parser.DEFAULT_METADATA_TO_PARSE
         self.values["pseudo_empty_tags"] = []
         self.values["suppress_tags"] = []
         self.values["break_apost"] = True
-        self.values["chars_not_to_index"] = NewParser.CHARS_NOT_TO_INDEX
+        self.values["chars_not_to_index"] = Parser.CHARS_NOT_TO_INDEX
         self.values["break_sent_in_line_group"] = False
-        self.values["tag_exceptions"] = NewParser.TAG_EXCEPTIONS
+        self.values["tag_exceptions"] = Parser.TAG_EXCEPTIONS
         self.values["join_hyphen_in_words"] = True
         self.values["abbrev_expand"] = True
         self.values["long_word_limit"] = 200
@@ -212,13 +212,14 @@ class LoadOptions(object):
 
 
 class LoadConfig(object):
+    """Load a load_config file"""
     def __init__(self):
         self.config = {}
 
-    def parse(self, load_config_file):
-        config_file = imp.load_source("external_load_config", load_config_file)
-        for a in dir(config_file):
-            if not a.startswith('__') and not isinstance(getattr(config_file, a), collections.Callable):
+    def parse(self, load_config_file_path):
+        load_config_file = imp.load_source("external_load_config", load_config_file_path)
+        for a in dir(load_config_file):
+            if not a.startswith('__') and not isinstance(getattr(load_config_file, a), collections.Callable):
                 value = getattr(config_file, a)
                 if value:
                     if a == "words_to_index":
@@ -238,5 +239,5 @@ class LoadConfig(object):
                     else:
                         self.config[a] = value
             elif a == "parser_factory":
-                value = getattr(config_file, a)
+                value = getattr(load_config_file, a)
                 self.config["parser_factory"] = value

@@ -1,4 +1,0 @@
-#### Dependencies for PhiloLogic5 ####
-lxml
-python-levenshtein
-natsort

@@ -15,9 +15,6 @@ else
 fi
 
 cd ..;
-echo "Installing Python dependencies"
-sudo -H pip3 install -r requirements.txt
-
 PYTHON_INSTALL="\n## INSTALLING PYTHON LIBRARY ##"
 echo "$PYTHON_INSTALL"
 cd python;

@@ -6,5 +6,8 @@ setup(name = "philologic",
       author = "The ARTFL Project",
       author_email = "artfl@artfl.uchicago.edu",
       packages = ["philologic", "philologic.runtime", "philologic.utils", "philologic.runtime.reports"],
-      scripts=["scripts/philoload5"]
+      scripts=["scripts/philoload5"],
+      install_requires=[
+            "lxml", "python-levenshtein", "natsort", "multiprocess"
+      ]
      )
