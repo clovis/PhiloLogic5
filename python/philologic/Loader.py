@@ -405,9 +405,9 @@ class Loader(object):
                     for f in filters:
                         f(self, text)
 
-                    os.system('gzip -c -5 %s > %s' % (text['raw'], text['raw'] + '.gz'))
+                    os.system('lz4 -q %s > %s' % (text['raw'], text['raw'] + '.lz4'))
                     os.system('rm %s' % text['raw'])
-                    os.system('gzip -c -5 %s > %s' % (text['words'], text['words'] + '.gz'))
+                    os.system('lz4 -q %s > %s' % (text['words'], text['words'] + '.lz4'))
                     os.system('rm %s' % text['words'])
 
                     exit()
@@ -439,7 +439,7 @@ class Loader(object):
         if "words" in self.tables:
             print("%s: concatenating document-order words file..." % time.ctime(), end=' ')
             for d in self.loaded_files:
-                os.system('gunzip -c %s | egrep -a "^word" >> all_words_ordered' % (d["raw"] + ".gz"))
+                os.system('lz4cat %s | egrep -a "^word" >> all_words_ordered' % (d["raw"] + ".lz4"))
             print("done")
 
         print("%s: sorting objects" % time.ctime())
@@ -480,15 +480,15 @@ class Loader(object):
         lists_of_files = []
         files = []
         if file_type == "words":
-            suffix = "/*words.sorted.gz"
-            open_file_command = "gunzip -c"
+            suffix = "/*words.sorted.lz4"
+            open_file_command = "lz4cat"
             sort_command = "LANG=C sort -S 10% -m {} {} ".format(sort_by_word, sort_by_id)
-            all_object_file = "/all_words_sorted.gz"
+            all_object_file = "/all_words_sorted.lz4"
         elif file_type == "toms":
             suffix = "/*.toms.sorted"
             open_file_command = "cat"
             sort_command = "LANG=C sort -S 10% -m {} ".format(sort_by_id)
-            all_object_file = "/all_toms_sorted.gz"
+            all_object_file = "/all_toms_sorted.lz4"
 
         # First we split the sort workload into chunks of 100 (default defined in the file_num keyword)
         for f in glob(self.workdir + suffix):
@@ -510,7 +510,7 @@ class Loader(object):
             file_list = ' '.join([i[1] for i in object_list])
             output = self.workdir + "sorted.%d.split" % pos
             args = sort_command + command_list
-            command = '/bin/bash -c "%s | %s - <(gunzip -c %s 2> /dev/null) | gzip -c -5 > %s"' % (
+            command = '/bin/bash -c "%s | %s - <(lz4cat %s 2> /dev/null) | lz4 -q > %s"' % (
                 args, sort_command, last_sort_file, output)
             status = os.system(command)
             if status != 0:
@@ -525,7 +525,7 @@ class Loader(object):
                 os.system("rm %s" % file_list)
         status = os.system('mv %s %s' % (last_sort_file, self.workdir + all_object_file))
         if file_type == "toms":
-            os.system("gunzip -d %s" % self.workdir + all_object_file)
+            os.system("lz4cat {} > {}".format(self.workdir + all_object_file, "all_toms_sorted"))
 
         if status != 0:
             print("%s sorting failed\nInterrupting database load..." % file_type)
@@ -546,7 +546,7 @@ class Loader(object):
         offset = 0
 
         # unix one-liner for a frequency table
-        os.system('/bin/bash -c "cut -f 2 <(gunzip -c {}) | uniq -c | LANG=C sort -S 10% -rn -k 1,1> {}"'.format(self.workdir + "/all_words_sorted.gz", self.workdir + "/all_frequencies"))
+        os.system('/bin/bash -c "cut -f 2 <(lz4cat {}) | uniq -c | LANG=C sort -S 10% -rn -k 1,1> {}"'.format(self.workdir + "/all_words_sorted.lz4", self.workdir + "/all_frequencies"))
 
         # now scan over the frequency table to figure out how wide (in bits) the frequency fields are,
         # and how large the block file will be.
@@ -586,7 +586,7 @@ class Loader(object):
         print("#define BITLENGTHS {%s}" % ",".join(str(i) for i in vl), file=dbs)
         dbs.close()
         print("%s: analysis done" % time.ctime())
-        os.system('/bin/bash -c "gunzip -c ' + self.workdir + '/all_words_sorted.gz | pack4 ' + self.workdir +
+        os.system('/bin/bash -c "lz4cat ' + self.workdir + '/all_words_sorted.lz4 | pack4 ' + self.workdir +
                   'dbspecs4.h"')
         print("%s: all indices built. moving into place." % time.ctime())
         os.system("mv index " + self.destination + "/index")

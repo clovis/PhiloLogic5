@@ -15,17 +15,18 @@ You can find more detailed installation instructions for specific OSes here:
 
 IMPORTANT: Do not install from the master branch on github: this is a the development branch and in no way garanteed to be stable
 
-You can find a copy of the latest version of PhiloLogic4 [here](../../../releases/).
+You can find a copy of the latest version of PhiloLogic5 [here](../../../releases/).
 
 For the rest of this document, we will assume the PhiloLogic source code is installed in
-your home directory at ~/PhiloLogic4/
+your home directory at ~/PhiloLogic5/
 
 ### Prerequisites ###
 
-* Python 2.6 or 2.7
+* Python 3.5 and up
 * GCC
 * Make
 * [gdbm](http://www.gnu.org.ua/software/gdbm/)
+* LZ4
 
 ### Installing ###
 

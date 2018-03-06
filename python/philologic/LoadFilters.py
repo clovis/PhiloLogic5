@@ -13,7 +13,7 @@ from philologic.OHCOVector import Record
 
 
 # Default filters
-def normalize_unicode_raw_words(loader_obj, text):
+def get_word_counts(loader_obj, text):
     """Lowercase and count words"""
     with open(text["raw"] + ".tmp", "w") as tmp_file:
         object_types = ['doc', 'div1', 'div2', 'div3', 'para', 'sent', 'word']
@@ -371,7 +371,7 @@ def store_words_and_philo_ids(loader_obj, text):
 
 
 DefaultNavigableObjects = ("div1", "div2", "div3", "para")
-DefaultLoadFilters = [normalize_unicode_raw_words, generate_words_sorted, make_object_ancestors,
+DefaultLoadFilters = [get_word_counts, generate_words_sorted, make_object_ancestors,
                       make_sorted_toms, prev_next_obj, generate_pages, prev_next_page, generate_refs, generate_graphics,
                       generate_lines, make_max_id, store_words_and_philo_ids]
 
