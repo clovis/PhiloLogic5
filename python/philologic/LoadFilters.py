@@ -14,42 +14,27 @@ from philologic.OHCOVector import Record
 
 # Default filters
 def normalize_unicode_raw_words(loader_obj, text):
-    tmp_file = open(text["raw"] + ".tmp", "w")
-    with open(text["raw"]) as filehandle:
-        for line in filehandle:
-            rec_type, word, philo_id, attrib = line.split('\t')
-            philo_id = philo_id.split()
-            if rec_type == "word":
-                word = word.lower()
-            record = Record(rec_type, word, philo_id)
-            record.attrib = loads(attrib)
-            print(record, file=tmp_file)
-    tmp_file.close()
+    """Lowercase and count words"""
+    with open(text["raw"] + ".tmp", "w") as tmp_file:
+        object_types = ['doc', 'div1', 'div2', 'div3', 'para', 'sent', 'word']
+        counts = [0 for i in range(5)]
+        with open(text["raw"], encoding='utf8') as fh:
+            for line in fh:
+                philo_type, word, id, attrib = line.split('\t')
+                id = id.split()
+                record = Record(philo_type, word, id)
+                record.attrib = loads(attrib)
+                if philo_type == "word":
+                    word = word.lower()
+                for d, _ in enumerate(counts):
+                    if philo_type == 'word':
+                        counts[d] += 1
+                    elif philo_type == object_types[d]:
+                        record.attrib['word_count'] = counts[d]
+                        counts[d] = 0
+                print(record, file=tmp_file)
     os.remove(text["raw"])
     os.rename(text["raw"] + ".tmp", text["raw"])
-
-
-def make_word_counts(loader_obj, text, depth=5):
-    object_types = ['doc', 'div1', 'div2', 'div3', 'para', 'sent', 'word']
-    counts = [0 for i in range(depth)]
-    temp_file = text['raw'] + '.tmp'
-    output_file = open(temp_file, 'w')
-    with open(text['raw']) as filehandle:
-        for line in filehandle:
-            philo_type, word, philo_id, attrib = line.split('\t')
-            philo_id = philo_id.split()
-            record = Record(philo_type, word, philo_id)
-            record.attrib = loads(attrib)
-            for d, count in enumerate(counts):
-                if philo_type == 'word':
-                    counts[d] += 1
-                elif philo_type == object_types[d]:
-                    record.attrib['word_count'] = counts[d]
-                    counts[d] = 0
-            print(record, file=output_file)
-    output_file.close()
-    os.remove(text['raw'])
-    os.rename(temp_file, text['raw'])
 
 
 def generate_words_sorted(loader_obj, text):
@@ -386,7 +371,7 @@ def store_words_and_philo_ids(loader_obj, text):
 
 
 DefaultNavigableObjects = ("div1", "div2", "div3", "para")
-DefaultLoadFilters = [normalize_unicode_raw_words, make_word_counts, generate_words_sorted, make_object_ancestors,
+DefaultLoadFilters = [normalize_unicode_raw_words, generate_words_sorted, make_object_ancestors,
                       make_sorted_toms, prev_next_obj, generate_pages, prev_next_page, generate_refs, generate_graphics,
                       generate_lines, make_max_id, store_words_and_philo_ids]
 

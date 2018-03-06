@@ -213,7 +213,7 @@ class Loader(object):
                 data["options"] = {"metadata_xpaths": trimmed_metadata_xpaths}
                 load_metadata.append(data)
             except etree.XMLSyntaxError:
-                self.deleted_files.append(f)
+                self.deleted_files.append(f.name)
         if self.deleted_files:
             for f in self.deleted_files:
                 print("%s has no valid TEI header or contains invalid data: removing from database load..." % f)
@@ -392,7 +392,7 @@ class Loader(object):
                                             tag_to_obj_map=self.parser_config["tag_to_obj_map"],
                                             metadata_to_parse=self.parser_config["metadata_to_parse"],
                                             words_to_index=self.words_to_index,
-                                            file_type=self.parser_config["file_type"]
+                                            file_type=self.parser_config["file_type"],
                                             **options)
                     try:
                         parser.parse(i)
@@ -482,12 +482,12 @@ class Loader(object):
         if file_type == "words":
             suffix = "/*words.sorted.gz"
             open_file_command = "gunzip -c"
-            sort_command = "LANG=C sort -m %s %s " % (sort_by_word, sort_by_id)
+            sort_command = "LANG=C sort -S 10% -m {} {} ".format(sort_by_word, sort_by_id)
             all_object_file = "/all_words_sorted.gz"
         elif file_type == "toms":
             suffix = "/*.toms.sorted"
             open_file_command = "cat"
-            sort_command = "LANG=C sort -m %s " % sort_by_id
+            sort_command = "LANG=C sort -S 10% -m {} ".format(sort_by_id)
             all_object_file = "/all_toms_sorted.gz"
 
         # First we split the sort workload into chunks of 100 (default defined in the file_num keyword)
@@ -546,8 +546,7 @@ class Loader(object):
         offset = 0
 
         # unix one-liner for a frequency table
-        os.system('/bin/bash -c "cut -f 2 <(gunzip -c %s) | uniq -c | LANG=C sort -rn -k 1,1> %s"' %
-                  (self.workdir + "/all_words_sorted.gz", self.workdir + "/all_frequencies"))
+        os.system('/bin/bash -c "cut -f 2 <(gunzip -c {}) | uniq -c | LANG=C sort -S 10% -rn -k 1,1> {}"'.format(self.workdir + "/all_words_sorted.gz", self.workdir + "/all_frequencies"))
 
         # now scan over the frequency table to figure out how wide (in bits) the frequency fields are,
         # and how large the block file will be.
