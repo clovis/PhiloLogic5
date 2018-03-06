@@ -16,7 +16,7 @@ def get_text(hit, start_byte, length, path):
     file_path = path + '/data/TEXT/' + hit.doc.filename
     with open(file_path, "rb") as text_file:
         text_file.seek(start_byte)
-    return text_file.read(length)
+        return text_file.read(length)
 
 
 def get_concordance_text(db, hit, path, context_size):
