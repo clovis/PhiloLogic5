@@ -140,6 +140,10 @@ web_config_defaults = OrderedDict([
                # The word_facets variable functions much like the facets variable, but describes metadata
                # attached to word or phrases results and stored in the words table. Experimental.''',
         }),
+    ('skip_table_of_contents', {
+            'value': False,
+            'comment': "If set to True, disable display of table of contents and go straight to the text. Useful when texts have no internal structure."
+        }),
     ('concordance_length', {
         'value': 300,
         'comment': "# The concordance_length variable sets the length in bytes of each concordance result",
