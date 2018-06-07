@@ -79,7 +79,6 @@ log.o:		log.h log.c
 install:	all
 	/usr/bin/install -c search4 ${exec_prefix}/bin
 	/usr/bin/install -c db/pack4 ${exec_prefix}/bin
-	(cd python; python setup.py install)
 clean: 
 	rm -f *.o *~ search4 db/pack4
 	(cd plugin; make clean)
