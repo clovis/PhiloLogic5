@@ -142,7 +142,7 @@ web_config_defaults = OrderedDict([
         }),
     ('skip_table_of_contents', {
             'value': False,
-            'comment': "If set to True, disable display of table of contents and go straight to the text. Useful when texts have no internal structure."
+            'comment': "# If set to True, disable display of table of contents and go straight to the text. Useful when texts have no internal structure."
         }),
     ('concordance_length', {
         'value': 300,

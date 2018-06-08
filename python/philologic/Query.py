@@ -55,13 +55,12 @@ def query(db,
             # now we're detached from the parent, and can do our work.
             if query_debug:
                 print("WORKER DETACHED at ", datetime.now() - tstart, file=sys.stderr)
-            args = ["corpus_search"]
+            args = ["search4"]
             if corpus_file:
-                args.extend(("-c", corpus_file))
+                args.extend(("--corpusfile", corpus_file))
+            args.append(db.path)
             if method and method_arg:
-                args.extend(("-m", method, "-a", str(method_arg)))
-
-            args.extend(("-o", "binary", db.path, ))
+                args.extend((method,str(method_arg)))
 
             worker = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=hl, stderr=err, env=os.environ)
 

@@ -7,10 +7,10 @@ make clean
 make
 if [[ $OSTYPE == 'darwin'* ]];
 then
-  sudo /usr/bin/install -c db/corpus_search /usr/local/bin/
+  sudo /usr/bin/install -c search4 /usr/local/bin/
   sudo /usr/bin/install -c db/pack4 /usr/local/bin/
 else
-  sudo /usr/bin/install -c db/corpus_search /bin/
+  sudo /usr/bin/install -c search4 /bin/
   sudo /usr/bin/install -c db/pack4 /bin/
 fi
 
