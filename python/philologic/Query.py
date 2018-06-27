@@ -55,7 +55,7 @@ def query(db,
             # now we're detached from the parent, and can do our work.
             if query_debug:
                 print("WORKER DETACHED at ", datetime.now() - tstart, file=sys.stderr)
-            args = ["search4"]
+            args = ["search5"]
             if corpus_file:
                 args.extend(("--corpusfile", corpus_file))
             args.append(db.path)
@@ -63,6 +63,7 @@ def query(db,
                 args.extend((method,str(method_arg)))
 
             worker = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=hl, stderr=err, env=os.environ)
+            # worker2 = subprocess.Popen("head -c 1", stdin=subprocess.PIPE, stdout=worker.stdin, stderr=err)
 
             query_log_fh = filename + ".terms"
             if query_debug:
@@ -85,7 +86,7 @@ def query(db,
             os._exit(0)
     else:
         hl.close()
-        return HitList.HitList(filename, words_per_hit, db, sort_order=sort_order, raw=raw_results)
+        return HitList.HitList(filename, words_per_hit, db, method=method, sort_order=sort_order, raw=raw_results)
 
 
 def get_expanded_query(hitlist):
@@ -179,6 +180,8 @@ def grep_word(token, freq_file, dest_fh, lowercase=True):
         token = token.lower()
     norm_tok_uni_chars = [i for i in unicodedata.normalize("NFKD", token) if not unicodedata.combining(i)]
     norm_tok = "".join(norm_tok_uni_chars)
+    import sys
+    print("NORM TOK", norm_tok, file=sys.stderr)
     try:
         grep_command = ['egrep', '-a', '^%s[[:blank:]]' % norm_tok, freq_file]
         grep_proc = subprocess.Popen(grep_command, stdout=dest_fh)

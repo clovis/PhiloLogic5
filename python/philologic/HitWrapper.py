@@ -20,7 +20,7 @@ def _safe_lookup(row, field):
 class HitWrapper:
     """Class representing an individual hit with all its ancestors"""
 
-    def __init__(self, hit, db, obj_type=False):
+    def __init__(self, hit, db, obj_type=False, method="proxy"):
         self.db = db
         self.hit = hit
         if obj_type:
@@ -44,10 +44,15 @@ class HitWrapper:
             self.philo_id = hit[:6] + (self.hit[7], )
             parent_id = self.hit[:6]
             remaining = list(self.hit[7:])
-            while remaining:
-                self.words += [parent_id + (remaining.pop(0), )]
-                if remaining:
-                    self.bytes.append(remaining.pop(0))
+            if self.method == "cooc": #TODO: temp fix for old core...
+                for start_byte in remaining:
+                    self.words += [parent_id + (start_byte, )]
+                    self.bytes.append(start_byte)
+            else:
+                while remaining:
+                    self.words += [parent_id + (remaining.pop(0), )]
+                    if remaining:
+                        self.bytes.append(remaining.pop(0))
             self.bytes.sort()
             self.words.sort(key=lambda x: x[-1])  # assumes words in same sent, as does search4
             self.words = [WordWrapper(word, db, byte) for word, byte in zip(self.words, self.bytes)]
@@ -200,6 +205,8 @@ class WordWrapper:
         self.byte = byte
 
     def __getitem__(self, key):
+        if key == "parent":
+            return self.philo_id.split()[:6] + ["0"]
         if self.row is None:
             self.row = self.db.get_word(self.philo_id)
             if self.row is None:

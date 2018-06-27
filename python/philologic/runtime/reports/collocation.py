@@ -42,7 +42,7 @@ def collocation_results(request, config):
     if request["collocate_distance"]:
         hits = db.query(request["q"], "proxy", int(request['collocate_distance']), raw_results=True, **request.metadata)
     else:
-        hits = db.query(request["q"], "cooc", request["arg"], raw_results=True, **request.metadata)
+        hits = db.query(request["q"], "proxy", request["arg"], raw_results=True, **request.metadata)
     hits.finish()
 
     stored_sentence_id = None

@@ -7,11 +7,11 @@ make clean
 make
 if [[ $OSTYPE == 'darwin'* ]];
 then
-  sudo /usr/bin/install -c search4 /usr/local/bin/
-  sudo /usr/bin/install -c db/pack4 /usr/local/bin/
+  sudo /usr/bin/install -c search5 /usr/local/bin/
+  sudo /usr/bin/install -c db/pack5 /usr/local/bin/
 else
-  sudo /usr/bin/install -c search4 /bin/
-  sudo /usr/bin/install -c db/pack4 /bin/
+  sudo /usr/bin/install -c search5 /bin/
+  sudo /usr/bin/install -c db/pack5 /bin/
 fi
 
 cd ..;
