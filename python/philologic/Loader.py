@@ -272,7 +272,7 @@ class Loader(object):
         sorted_load_metadata = []
         for filename in self.filenames:
             for m in load_metadata:
-                if m["filename"] == filename:
+                if m["filename"] == os.path.basename(filename):
                     sorted_load_metadata.append(m)
                     break
         return sorted_load_metadata
@@ -471,20 +471,27 @@ class Loader(object):
             file_list = ' '.join([i[1] for i in object_list])
             output = self.workdir + "sorted.%d.split" % pos
             args = sort_command + command_list
-            command = '/bin/bash -c "%s | %s - <(lz4cat %s 2> /dev/null) | lz4 -q > %s"' % (
-                args, sort_command, last_sort_file, output)
+            command = '/bin/bash -c "%s | lz4 -q > %s"' % (
+                args, output)
             status = os.system(command)
             if status != 0:
                 print("%s sorting failed\nInterrupting database load..." % file_type)
                 sys.exit()
             already_merged += len(object_list)
-            os.system("rm %s" % last_sort_file)
             last_sort_file = output
-
-            print("%s: %d files merged..." % (time.ctime(), already_merged))
+            print("%s: %d files sorted..." % (time.ctime(), already_merged))
             if not self.debug:
                 os.system("rm %s" % file_list)
-        status = os.system('mv %s %s' % (last_sort_file, self.workdir + all_object_file))
+
+        sorted_files = " ".join(["<(lz4cat -q {})".format(i) for i in glob("{}/*.split".format(self.workdir))])
+        command = '/bin/bash -c "%s %s | lz4 -q > %s"' % (sort_command, sorted_files, self.workdir + all_object_file)
+        print("{}: Merging all {} sorted files...".format(time.ctime(), len(sorted_files)), flush=True, end=" ")
+        os.system(command)
+        print("done.")
+
+        for sorted_file in glob("{}/*.split".format(self.workdir)):
+            os.system("rm {}".format(sorted_file))
+
         if file_type == "toms":
             os.system("lz4cat {} > {}".format(self.workdir + all_object_file, "all_toms_sorted"))
 
@@ -547,7 +554,7 @@ class Loader(object):
         print("#define BITLENGTHS {%s}" % ",".join(str(i) for i in vl), file=dbs)
         dbs.close()
         print("%s: analysis done" % time.ctime())
-        os.system('/bin/bash -c "lz4cat ' + self.workdir + '/all_words_sorted.lz4 | pack4 ' + self.workdir +
+        os.system('/bin/bash -c "lz4cat ' + self.workdir + '/all_words_sorted.lz4 | pack5 ' + self.workdir +
                   'dbspecs4.h"')
         print("%s: all indices built. moving into place." % time.ctime())
         os.system("mv index " + self.destination + "/index")
