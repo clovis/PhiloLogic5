@@ -13,7 +13,7 @@ from philologic.OHCOVector import Record
 
 
 # Default filters
-def get_word_counts(loader_obj, text):
+def get_word_counts(_, text):
     """Lowercase and count words"""
     with open(text["raw"] + ".tmp", "w") as tmp_file:
         object_types = ['doc', 'div1', 'div2', 'div3', 'para', 'sent', 'word']
@@ -126,12 +126,12 @@ def prev_next_obj(*philo_types):
     return inner_prev_next_obj
 
 
-def generate_pages(loader_obj, text):
+def generate_pages(_, text):
     pagescommand = "cat %s | egrep \"^page\" > %s" % (text["raw"], text["pages"])
     os.system(pagescommand)
 
 
-def prev_next_page(loader_obj, text):
+def prev_next_page(_, text):
     # Inner function
     def load_record(line):
         philo_type, word, philo_id, attrib = line.split('\t')
@@ -167,20 +167,20 @@ def prev_next_page(loader_obj, text):
     os.rename(temp_file, text["pages"])
 
 
-def generate_refs(loader_obj, text):
+def generate_refs(_, text):
     refscommand = "cat %s | egrep \"^ref\" > %s" % (text["raw"], text["refs"])
     os.system(refscommand)
 
-def generate_graphics(loader_obj, text):
+def generate_graphics(_, text):
     refscommand = "cat %s | egrep \"^graphic\" > %s" % (text["raw"], text["graphics"])
     os.system(refscommand)
 
-def generate_lines(loader_obj, text):
+def generate_lines(_, text):
     lines_command = "cat %s | egrep \"^line\" > %s" % (text["raw"], text["lines"])
     os.system(lines_command)
 
 
-def make_max_id(loader_obj, text):
+def make_max_id(_, text):
     max_id = [0, 0, 0, 0, 0, 0, 0, 0, 0]
     with open(text["words"]) as filehandle:
         for line in filehandle:
@@ -190,124 +190,6 @@ def make_max_id(loader_obj, text):
     with open(text["results"], "wb") as rf:
         # write the result out--really just the resulting omax vector, which the parent will merge in below.
         pickle.dump(max_id, rf)
-
-# Useful for nested metadata.  Should always pair with normalize_divs_post
-# in postFilters
-def normalize_divs(*columns):
-    def normalize_these_columns(loader_obj, text):
-        current_values = {}
-        tmp_file = open(text["sortedtoms"] + ".tmp", "w")
-        for column in columns:
-            current_values[column] = ""
-        for line in open(text["sortedtoms"]):
-            philo_type, word, philo_id, attrib = line.split('\t')
-            philo_id = philo_id.split()
-            record = Record(philo_type, word, philo_id)
-            record.attrib = loads(attrib)
-            if philo_type == "div1":
-                for column in columns:
-                    if column in record.attrib:
-                        current_values[column] = record.attrib[column]
-                    else:
-                        current_values[column] = ""
-            elif philo_type == "div2":
-                for column in columns:
-                    if column in record.attrib:
-                        current_values[column] = record.attrib[column]
-            elif philo_type == "div3":
-                for column in columns:
-                    if column not in record.attrib:
-                        record.attrib[column] = current_values[column]
-            print(record, file=tmp_file)
-        tmp_file.close()
-        os.remove(text["sortedtoms"])
-        os.rename(text["sortedtoms"] + ".tmp", text["sortedtoms"])
-
-    return normalize_these_columns
-
-
-def normalize_unicode_columns(*columns):
-    # I should never, ever need to use this now.
-    def smash_these_unicode_columns(loader_obj, text):
-        tmp_file = open(text["sortedtoms"] + ".tmp", "w")
-        for line in open(text["sortedtoms"]):
-            philo_type, word, philo_id, attrib = line.split('\t')
-            philo_id = philo_id.split()
-            record = Record(philo_type, word, philo_id)
-            record.attrib = loads(attrib)
-            for column in columns:
-                if column in record.attrib:
-                    #                    print >> sys.stderr, repr(record.attrib)
-                    col = record.attrib[column]
-                    col = col.lower()
-                    smashed_col = [c for c in unicodedata.normalize("NFKD", col) if not unicodedata.combining(c)]
-                    record.attrib[column + "_norm"] = ''.join(smashed_col)
-            print(record, file=tmp_file)
-        tmp_file.close()
-        os.remove(text["sortedtoms"])
-        os.rename(text["sortedtoms"] + ".tmp", text["sortedtoms"])
-
-    return smash_these_unicode_columns
-
-
-# Optional filters
-def tree_tagger(tt_path, param_file, maxlines=20000):
-    def tag_words(loader_obj, text):
-        # Set up the treetagger process
-        tt_args = [tt_path, "-token", "-lemma", "-prob", '-no-unknown', "-threshold", ".01", param_file]
-        ttout_filehandle = open(text["raw"] + ".ttout", "w")
-        tt_worker = Popen(tt_args, stdin=PIPE, stdout=ttout_filehandle)
-        raw_filehandle = open(text["raw"], "r")
-        line_count = 0
-
-        # read through the object file, pass the words to treetagger
-        for line in raw_filehandle:
-            philo_type, word, philo_id, attrib = line.split('\t')
-            philo_id = philo_id.split()
-            if philo_type == "word":
-                word = word.lower()
-                # close and re-open the treetagger process to prevent garbage
-                # output.
-                if line_count > maxlines:
-                    tt_worker.stdin.close()
-                    tt_worker.wait()
-                    new_ttout_filehandle = open(text["raw"] + ".ttout", "a")
-                    tt_worker = Popen(tt_args, stdin=PIPE, stdout=new_ttout_filehandle)
-                    line_count = 0
-                print(word, file=tt_worker.stdin)
-                line_count += 1
-
-        # finish tagging
-        tt_worker.stdin.close()
-        tt_worker.wait()
-
-        # go back through the object file, and add the treetagger results to
-        # each word
-        tmp_filehandle = open(text["raw"] + ".tmp", "w")
-        tag_filehandle = open(text["raw"] + ".ttout", "r")
-        for line in open(text["raw"], "r"):
-            philo_type, word, philo_id, attrib = line.split('\t')
-            philo_id = philo_id.split()
-            record = Record(philo_type, word, philo_id)
-            record.attrib = loads(attrib)
-            if philo_type == "word":
-                tag_l = tag_filehandle.readline()
-                next_word, tag = tag_l.split("\t")[0:2]
-                pos, lem, prob = tag.split(" ")
-                if next_word != word.lower():
-                    print("TREETAGGER ERROR:", next_word, " != ", word, pos, lem, file=sys.stderr)
-                    return
-                else:
-                    record.attrib["pos"] = pos
-                    record.attrib["lemma"] = lem
-                    print(record, file=tmp_filehandle)
-            else:
-                print(record, file=tmp_filehandle)
-        os.remove(text["raw"])
-        os.rename(text["raw"] + ".tmp", text["raw"])
-        os.remove(text["raw"] + ".ttout")
-
-    return tag_words
 
 
 def store_in_plain_text(*philo_types):

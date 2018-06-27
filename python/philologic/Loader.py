@@ -62,7 +62,7 @@ class Loader(object):
             except KeyError:  # option hasn't been set
                 pass
 
-        self.setup_dir(loader_options["data_destination"])  # TO TEST!!!!
+        self.setup_dir(loader_options["data_destination"])
         load_config_path = os.path.join(loader_options["data_destination"], "load_config.py")
         # Loading these from a load_config would crash the parser for a number of reasons...
         values_to_ignore = ["load_filters", "post_filters", "parser_factory", "data_destination", "db_destination", "dbname"]
@@ -283,7 +283,7 @@ class Loader(object):
 
         if data_dicts is None:
             data_dicts = [{"filename": fn.name} for fn in os.scandir(self.textdir)]
-        self.filequeue = [{"name": d["filename"],
+        filequeue = [{"name": d["filename"],
                            "size": os.path.getsize(self.textdir + d["filename"]),
                            "id": n + 1,
                            "options": d["options"] if "options" in d else {},
@@ -299,7 +299,7 @@ class Loader(object):
                            "results": self.workdir + d["filename"] + ".results"}
                           for n, d in enumerate(data_dicts)]
 
-        self.loaded_files = self.filequeue[:]
+        self.raw_files = [f["raw"] + ".lz4" for f in filequeue]
 
         self.metadata_hierarchy.append([])
         # Adding in doc level metadata
@@ -325,9 +325,9 @@ class Loader(object):
                     else:  # we have a serious error here!  Should raise going forward.
                         pass
 
-        print("%s: parsing %d files." % (time.ctime(), len(self.filequeue)))
+        print("%s: parsing %d files." % (time.ctime(), len(filequeue)))
         pool = Pool(workers)
-        for results in pool.imap_unordered(self.__parse_file, zip(self.filequeue, data_dicts)):
+        for results in pool.imap_unordered(self.__parse_file, zip(filequeue, data_dicts)):
             with open(results, 'rb') as proc_fh:
                 vec = pickle.load(proc_fh)  # load in the results from the child's parsework() function.
             self.omax = [max(x, y) for x, y in zip(vec, self.omax)]
@@ -389,23 +389,17 @@ class Loader(object):
 
     def merge_objects(self):
         print("\n### Merge parser output ###")
-
-        # Make all sorting happen in workdir rather than /tmp
-        os.system('export TMPDIR=%s/' % self.workdir)
-
         print("%s: sorting words" % time.ctime())
-        words_status = self.merge_files("words")
-        print("%s: word sort returned %d" % (time.ctime(), words_status))
+        self.merge_files("words")
 
         if "words" in self.tables:
             print("%s: concatenating document-order words file..." % time.ctime(), end=' ')
-            for d in self.loaded_files:
-                os.system('lz4cat %s | egrep -a "^word" >> all_words_ordered' % (d["raw"] + ".lz4"))
+            for d in self.raw_files:
+                os.system('lz4cat {} | egrep -a "^word" >> all_words_ordered'.format(d))
             print("done")
 
         print("%s: sorting objects" % time.ctime())
-        toms_status = self.merge_files("toms")
-        print("%s: object sort returned %d" % (time.ctime(), toms_status))
+        self.merge_files("toms")
         if not self.debug:
             for toms_file in glob(self.workdir + "/*toms.sorted"):
                 os.system('rm %s' % toms_file)
@@ -443,12 +437,12 @@ class Loader(object):
         if file_type == "words":
             suffix = "/*words.sorted.lz4"
             open_file_command = "lz4cat"
-            sort_command = "LANG=C sort -S 10% -m {} {} ".format(self.sort_by_word, self.sort_by_id)
+            sort_command = "LANG=C sort -S 10% -m -T {} {} {} ".format(self.workdir, self.sort_by_word, self.sort_by_id)
             all_object_file = "/all_words_sorted.lz4"
         elif file_type == "toms":
             suffix = "/*.toms.sorted"
             open_file_command = "cat"
-            sort_command = "LANG=C sort -S 10% -m {} ".format(self.sort_by_id)
+            sort_command = "LANG=C sort -S 10% -m -T {} {} ".format(self.workdir, self.sort_by_id)
             all_object_file = "/all_toms_sorted.lz4"
 
         # First we split the sort workload into chunks of 100 (default defined in the file_num keyword)
@@ -484,23 +478,24 @@ class Loader(object):
                 os.system("rm %s" % file_list)
 
         sorted_files = " ".join(["<(lz4cat -q {})".format(i) for i in glob("{}/*.split".format(self.workdir))])
-        command = '/bin/bash -c "%s %s | lz4 -q > %s"' % (sort_command, sorted_files, self.workdir + all_object_file)
-        print("{}: Merging all {} sorted files...".format(time.ctime(), len(sorted_files)), flush=True, end=" ")
-        os.system(command)
+        if file_type == "words":
+            output_file = os.path.join(self.workdir, all_object_file)
+            command = '/bin/bash -c "%s %s | lz4 -q > %s"' % (sort_command, sorted_files, output_file)
+        else:
+            output_file = os.path.join(self.workdir, "all_toms_sorted")
+            command = '/bin/bash -c "%s %s > %s"' % (sort_command, sorted_files, output_file)
+        print("{}: Merging all {} sorted files (this may take a while)...".format(time.ctime(), len(sorted_files)), flush=True, end=" ")
+        status = os.system(command)
+        if status != 0:
+            print("%s sorting failed\nInterrupting database load..." % file_type)
+            sys.exit()
         print("done.")
 
         for sorted_file in glob("{}/*.split".format(self.workdir)):
             os.system("rm {}".format(sorted_file))
 
-        if file_type == "toms":
-            os.system("lz4cat {} > {}".format(self.workdir + all_object_file, "all_toms_sorted"))
-
-        if status != 0:
-            print("%s sorting failed\nInterrupting database load..." % file_type)
-            sys.exit()
-        return status
-
     def analyze(self):
+        """Create inverted index"""
         print("\n### Create inverted index ###")
         print(self.omax)
         vl = [max(int(math.ceil(math.log(float(x) + 1.0, 2.0))), 1) if x > 0 else 1 for x in self.omax]
@@ -563,6 +558,7 @@ class Loader(object):
         #    os.system('rm all_words_sorted')
 
     def setup_sql_load(self):
+        """Setup SQL DB creation"""
         for table in self.tables:
             if table == 'words':
                 file_in = self.destination + '/WORK/all_words_ordered'
