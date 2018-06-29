@@ -44,7 +44,7 @@ class HitWrapper:
             self.philo_id = hit[:6] + (self.hit[7], )
             parent_id = self.hit[:6]
             remaining = list(self.hit[7:])
-            if self.method == "cooc": #TODO: temp fix for old core...
+            if method == "cooc": #TODO: temp fix for old core...
                 for start_byte in remaining:
                     self.words += [parent_id + (start_byte, )]
                     self.bytes.append(start_byte)

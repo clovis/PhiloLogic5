@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import os
 import re
 import subprocess
@@ -7,16 +8,14 @@ import sys
 import unicodedata
 from wsgiref.handlers import CGIHandler
 
-import json
 from philologic.DB import DB
 from philologic.MetadataQuery import metadata_pattern_search
 from philologic.QuerySyntax import parse_query
-
 from philologic.runtime import access_control, login_access
 
-import sys
-sys.path.append("..")
 import custom_functions
+
+sys.path.append("..")
 try:
      from custom_functions import WebConfig
 except ImportError:
@@ -89,7 +88,7 @@ def format_query(q, field, db):
         matches = metadata_pattern_search(
             norm_tok, db.locals.db_path +
             "/data/frequencies/normalized_%s_frequencies" % field)
-        substr_token = token.decode("utf-8").lower().encode("utf-8")
+        substr_token = token.lower()
         exact_matches = exact_word_pattern_search(
             substr_token + '.*',
             db.locals.db_path + "/data/frequencies/%s_frequencies" % field)
@@ -113,8 +112,8 @@ def exact_word_pattern_search(term, path):
     cut = subprocess.Popen(["cut", "-f", "1"],
                            stdin=grep.stdout,
                            stdout=subprocess.PIPE)
-    match, stderr = cut.communicate()
-    matches = [i for i in match.split('\n') if i]
+    match, _ = cut.communicate()
+    matches = [i.decode('utf8') for i in match.split(b'\n') if i]
     return matches
 
 
@@ -122,10 +121,10 @@ def highlighter(words, norm_tok, substr_tok):
     new_list = []
     token_len = len(norm_tok)
     for word in words:
-        highlighted_section = word.decode('utf8')[:token_len]
-        end_word = word.decode('utf-8')[token_len:]
+        highlighted_section = word[:token_len]
+        end_word = word[token_len:]
         highlighted_word = '<span class="highlight">' + highlighted_section + '</span>' + end_word
-        new_list.append(highlighted_word.encode('utf8'))
+        new_list.append(highlighted_word)
     return new_list
 
 

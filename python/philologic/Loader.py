@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Standard PhiloLogic5 loader.
-Calls all parsing functions and store data in index"""
+Calls all parsing functions and stores data in index"""
 
 import collections
 import imp
@@ -35,9 +35,9 @@ DEFAULT_OBJECT_LEVEL = "doc"
 NAVIGABLE_OBJECTS = ('doc', 'div1', 'div2', 'div3', 'para')
 
 PARSER_OPTIONS = ["parser_factory", "doc_xpaths", "token_regex", "tag_to_obj_map", "metadata_to_parse", "suppress_tags",
-                 "load_filters", "break_apost", "chars_not_to_index", "break_sent_in_line_group", "tag_exceptions",
-                 "join_hyphen_in_words", "unicode_word_breakers", "abbrev_expand", "long_word_limit",
-                 "flatten_ligatures", "sentence_breakers", "file_type"]
+                  "load_filters", "break_apost", "chars_not_to_index", "break_sent_in_line_group", "tag_exceptions",
+                  "join_hyphen_in_words", "unicode_word_breakers", "abbrev_expand", "long_word_limit",
+                  "flatten_ligatures", "sentence_breakers", "file_type"]
 
 
 class Loader(object):
@@ -106,6 +106,7 @@ class Loader(object):
         self.metadata_fields_not_found = []
 
     def setup_dir(self, path):
+        """Setup database directory"""
         os.system("mkdir -p %s" % path)
         self.workdir = path + "/WORK/"
         self.textdir = path + "/TEXT/"
@@ -125,6 +126,7 @@ class Loader(object):
         print("done.\n")
 
     def parse_bibliography_file(self, bibliography_file, sort_by_field, reverse_sort=True):
+        """Parse tab delimited bibliography file"""
         load_metadata = []
         files = set(os.listdir(self.textdir))
         with open(bibliography_file) as input_file:
@@ -141,6 +143,7 @@ class Loader(object):
         print("Sorting files by the following metadata fields: %s..." % ", ".join([i for i in sort_by_field]), end=' ')
 
         def make_sort_key(d):
+            """Inner sort function"""
             key = [d.get(f, "") for f in sort_by_field]
             return key
 
@@ -149,6 +152,7 @@ class Loader(object):
         return load_metadata
 
     def parse_tei_header(self):
+        """Parse header in TEI files"""
         load_metadata = []
         metadata_xpaths = self.parser_config["doc_xpaths"]
         self.deleted_files = []
@@ -210,6 +214,7 @@ class Loader(object):
         return load_metadata
 
     def parse_dc_header(self):
+        """Parse Dublin Core header"""
         load_metadata = []
         for file in os.scandir(self.textdir):
             data = {}
@@ -241,6 +246,7 @@ class Loader(object):
         return load_metadata
 
     def create_year_field(self, metadata):
+        """Create year field from date fields in header"""
         year_finder = re.compile(r'^.*?(\d{4}).*')  # we are assuming dates from 1000 AC
         earliest_year = 2500
         for field in ["date", "create_date", "pub_date", "period"]:
@@ -278,26 +284,27 @@ class Loader(object):
         return sorted_load_metadata
 
     def parse_files(self, workers, data_dicts=None):
+        """Parse all files"""
         print("\n\n### Parsing files ###")
         os.chdir(self.workdir)  # questionable
 
         if data_dicts is None:
             data_dicts = [{"filename": fn.name} for fn in os.scandir(self.textdir)]
         filequeue = [{"name": d["filename"],
-                           "size": os.path.getsize(self.textdir + d["filename"]),
-                           "id": n + 1,
-                           "options": d["options"] if "options" in d else {},
-                           "newpath": self.textdir + d["filename"],
-                           "raw": self.workdir + d["filename"] + ".raw",
-                           "words": self.workdir + d["filename"] + ".words.sorted",
-                           "toms": self.workdir + d["filename"] + ".toms",
-                           "sortedtoms": self.workdir + d["filename"] + ".toms.sorted",
-                           "pages": self.workdir + d["filename"] + ".pages",
-                           "refs": self.workdir + d["filename"] + ".refs",
-                           "graphics": self.workdir + d["filename"] + ".graphics",
-                           "lines": self.workdir + d["filename"] + ".lines",
-                           "results": self.workdir + d["filename"] + ".results"}
-                          for n, d in enumerate(data_dicts)]
+                      "size": os.path.getsize(self.textdir + d["filename"]),
+                      "id": n + 1,
+                      "options": d["options"] if "options" in d else {},
+                      "newpath": self.textdir + d["filename"],
+                      "raw": self.workdir + d["filename"] + ".raw",
+                      "words": self.workdir + d["filename"] + ".words.sorted",
+                      "toms": self.workdir + d["filename"] + ".toms",
+                      "sortedtoms": self.workdir + d["filename"] + ".toms.sorted",
+                      "pages": self.workdir + d["filename"] + ".pages",
+                      "refs": self.workdir + d["filename"] + ".refs",
+                      "graphics": self.workdir + d["filename"] + ".graphics",
+                      "lines": self.workdir + d["filename"] + ".lines",
+                      "results": self.workdir + d["filename"] + ".results"}
+                     for n, d in enumerate(data_dicts)]
 
         self.raw_files = [f["raw"] + ".lz4" for f in filequeue]
 
@@ -352,9 +359,9 @@ class Loader(object):
         del options["load_filters"]
 
         for option in ["token_regex", "suppress_tags", "break_apost", "chars_not_to_index",
-                        "break_sent_in_line_group", "tag_exceptions", "join_hyphen_in_words",
-                        "unicode_word_breakers", "abbrev_expand", "long_word_limit", "flatten_ligatures",
-                        "sentence_breakers"]:
+                       "break_sent_in_line_group", "tag_exceptions", "join_hyphen_in_words",
+                       "unicode_word_breakers", "abbrev_expand", "long_word_limit", "flatten_ligatures",
+                       "sentence_breakers"]:
             try:
                 options[option] = self.parser_config[option]
             except KeyError:  # option hasn't been set
@@ -388,6 +395,7 @@ class Loader(object):
 
 
     def merge_objects(self):
+        """Merge all parsed objects"""
         print("\n### Merge parser output ###")
         print("%s: sorting words" % time.ctime())
         self.merge_files("words")
@@ -405,45 +413,48 @@ class Loader(object):
                 os.system('rm %s' % toms_file)
 
         print("%s: joining pages" % time.ctime())
-        for page_file in glob(self.workdir + "/*pages"):
-            os.system("cat %s >> %s/all_pages" % (page_file, self.workdir))
-            if not self.debug:
-                os.system("rm %s" % page_file)
+        if self.debug is False:
+            os.system('for i in $(find {} -type f -name "*pages"); do cat $i >> {}/all_pages; rm $i; done'.format(self.workdir, self.workdir))
+        else:
+            os.system('for i in $(find {} -type f -name "*pages"); do cat $i >> {}/all_pages; done'.format(self.workdir, self.workdir))
 
         print("%s: joining references" % time.ctime())
-        for ref_file in glob(self.workdir + "/*refs"):
-            os.system("cat %s >> %s/all_refs" % (ref_file, self.workdir))
-            if not self.debug:
-                os.system("rm %s" % ref_file)
+        if self.debug is False:
+            os.system('for i in $(find {} -type f -name "*refs"); do cat $i >> {}/all_refs; rm $i; done'.format(self.workdir, self.workdir))
+        else:
+            os.system('for i in $(find {} -type f -name "*refs"); do cat $i >> {}/all_refs; done'.format(self.workdir, self.workdir))
 
         print("%s: joining graphics" % time.ctime())
-        for graphic_file in glob(self.workdir + "/*graphics"):
-            os.system("cat %s >> %s/all_graphics" % (graphic_file, self.workdir))
-            if not self.debug:
-                os.system("rm %s" % graphic_file)
+        if self.debug is False:
+            os.system('for i in $(find {} -type f -name "*graphics"); do cat $i >> {}/all_graphics; rm $i; done'.format(self.workdir, self.workdir))
+        else:
+            os.system('for i in $(find {} -type f -name "*graphics"); do cat $i >> {}/all_graphics; done'.format(self.workdir, self.workdir))
 
         print("%s: joining lines" % time.ctime())
-        for line_file in glob(self.workdir + "/*lines"):
-            os.system("cat %s >> %s/all_lines" % (line_file, self.workdir))
-            if not self.debug:
-                os.system("rm %s" % line_file)
+        if self.debug is False:
+            os.system('for i in $(find {} -type f -name "*lines"); do cat $i >> {}/all_lines; rm $i; done'.format(self.workdir, self.workdir))
+        else:
+            os.system('for i in $(find {} -type f -name "*lines"); do cat $i >> {}/all_lines; done'.format(self.workdir, self.workdir))
 
-    def merge_files(self, file_type, file_num=500):
+
+    def merge_files(self, file_type, file_num=1000):
         """This function runs a multi-stage merge sort on words
         Since PhiloLogic can potentially merge thousands of files, we need to split
         the sorting stage into multiple steps to avoid running out of file descriptors"""
+        if sys.platform == "darwin":
+            file_num = 500
         lists_of_files = []
         files = []
         if file_type == "words":
             suffix = "/*words.sorted.lz4"
             open_file_command = "lz4cat"
             sort_command = "LANG=C sort -S 10% -m -T {} {} {} ".format(self.workdir, self.sort_by_word, self.sort_by_id)
-            all_object_file = "/all_words_sorted.lz4"
+            all_object_file = "all_words_sorted.lz4"
         elif file_type == "toms":
             suffix = "/*.toms.sorted"
             open_file_command = "cat"
             sort_command = "LANG=C sort -S 10% -m -T {} {} ".format(self.workdir, self.sort_by_id)
-            all_object_file = "/all_toms_sorted.lz4"
+            all_object_file = "all_toms_sorted.lz4"
 
         # First we split the sort workload into chunks of 100 (default defined in the file_num keyword)
         for f in glob(self.workdir + suffix):
@@ -477,14 +488,15 @@ class Loader(object):
             if not self.debug:
                 os.system("rm %s" % file_list)
 
-        sorted_files = " ".join(["<(lz4cat -q {})".format(i) for i in glob("{}/*.split".format(self.workdir))])
+        sorted_files = " ".join(["<(lz4cat -q {})".format(i) for i in glob(f"{self.workdir}/*.split")])
         if file_type == "words":
             output_file = os.path.join(self.workdir, all_object_file)
-            command = '/bin/bash -c "%s %s | lz4 -q > %s"' % (sort_command, sorted_files, output_file)
+            command = f'/bin/bash -c "{sort_command} {sorted_files} | lz4 -q > {output_file}"'
         else:
             output_file = os.path.join(self.workdir, "all_toms_sorted")
-            command = '/bin/bash -c "%s %s > %s"' % (sort_command, sorted_files, output_file)
-        print("{}: Merging all {} sorted files (this may take a while)...".format(time.ctime(), len(sorted_files)), flush=True, end=" ")
+            command = f'/bin/bash -c "{sort_command} {sorted_files} > {output_file}"'
+        print(f"{time.ctime()}: Merging all merged sorted files (this may take a while)...", flush=True, end=" ")
+
         status = os.system(command)
         if status != 0:
             print("%s sorting failed\nInterrupting database load..." % file_type)
@@ -690,10 +702,12 @@ class Loader(object):
 
 
 def shellquote(s):
+    """Quote shell commands"""
     return "'" + s.replace("'", "'\\''") + "'"
 
 
 def setup_db_dir(db_destination, web_app_dir, force_delete=False):
+    """Setup database directory"""
     try:
         os.mkdir(db_destination)
     except OSError:
