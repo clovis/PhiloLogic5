@@ -58,25 +58,28 @@ class DB:
     def get_id_lowlevel(self, item):
         hit_s = hit_to_string(item, self.width)
         c = self.dbh.cursor()
-        c.execute("SELECT * FROM toms WHERE philo_id=? LIMIT 1;", (hit_s, ))
+        c.execute("SELECT * FROM toms WHERE philo_id=? LIMIT 1;", (hit_s,))
         return c.fetchone()
 
     def get_word(self, item):
         word_s = hit_to_string(item, self.width)
         c = self.dbh.cursor()
-        c.execute("SELECT * FROM words WHERE philo_id=? LIMIT 1;", (word_s, ))
+        c.execute("SELECT * FROM words WHERE philo_id=? LIMIT 1;", (word_s,))
         return c.fetchone()
 
     def get_page(self, item):
         page_id_s = " ".join(str(s) for s in item)
         c = self.dbh.cursor()
-        c.execute("SELECT * FROM pages WHERE philo_id=? LIMIT 1;", (page_id_s, ))
+        c.execute("SELECT * FROM pages WHERE philo_id=? LIMIT 1;", (page_id_s,))
         return c.fetchone()
 
     def get_line(self, byte_offset, doc_id):
         c = self.dbh.cursor()
         try:
-            c.execute("SELECT * FROM lines WHERE doc_id=? and start_byte < ? and end_byte > ? LIMIT 1", (doc_id, byte_offset, byte_offset))
+            c.execute(
+                "SELECT * FROM lines WHERE doc_id=? and start_byte < ? and end_byte > ? LIMIT 1",
+                (doc_id, byte_offset, byte_offset),
+            )
             return c.fetchone()
         except sqlite3.OperationalError:
             return ""
@@ -84,8 +87,8 @@ class DB:
     def get_all(self, philo_type="doc", sort_order=["rowid"], raw_results=False):
         """ get all objects of type philo_type """
         hash = hashlib.sha1()
-        hash.update(self.path.encode('utf8'))
-        hash.update(philo_type.encode('utf8'))
+        hash.update(self.path.encode("utf8"))
+        hash.update(philo_type.encode("utf8"))
         all_hash = hash.hexdigest()
         all_file = self.path + "/hitlists/" + all_hash + ".hitlist"
         if not os.path.isfile(all_file):
@@ -117,7 +120,7 @@ class DB:
                 limit = 10000000
 
         hash = hashlib.sha1()
-        hash.update(self.path.encode('utf8'))
+        hash.update(self.path.encode("utf8"))
         has_metadata = False
         corpus_file = None
 
@@ -132,7 +135,7 @@ class DB:
             if value:
                 has_metadata = True
                 key_value = "%s=%s" % (key, "|".join(value))
-                hash.update(key_value.encode('utf8'))
+                hash.update(key_value.encode("utf8"))
 
         if has_metadata:
             corpus_hash = hash.hexdigest()
@@ -170,31 +173,35 @@ class DB:
         else:
             corpus = None
         if qs:
-            hash.update(qs.encode('utf8'))
-            hash.update(method.encode('utf8'))
-            hash.update(str(method_arg).encode('utf8'))
-            hash.update(str(limit).encode('utf8'))
+            hash.update(qs.encode("utf8"))
+            hash.update(method.encode("utf8"))
+            hash.update(str(method_arg).encode("utf8"))
+            hash.update(str(limit).encode("utf8"))
             search_hash = hash.hexdigest()
             search_file = self.path + "/hitlists/" + search_hash + ".hitlist"
             if sort_order == ["rowid"]:
                 sort_order = None
             if not os.path.isfile(search_file):
-                return Query.query(self,
-                                   qs,
-                                   corpus_file,
-                                   self.width,
-                                   method,
-                                   method_arg,
-                                   limit,
-                                   filename=search_file,
-                                   sort_order=sort_order,
-                                   raw_results=raw_results)
+                return Query.query(
+                    self,
+                    qs,
+                    corpus_file,
+                    self.width,
+                    method,
+                    method_arg,
+                    limit,
+                    filename=search_file,
+                    sort_order=sort_order,
+                    raw_results=raw_results,
+                )
             else:
                 parsed = QuerySyntax.parse_query(qs)
                 grouped = QuerySyntax.group_terms(parsed)
                 split = Query.split_terms(grouped)
                 words_per_hit = len(split)
-                return HitList.HitList(search_file, words_per_hit, self, method=method, sort_order=sort_order, raw=raw_results)
+                return HitList.HitList(
+                    search_file, words_per_hit, self, method=method, sort_order=sort_order, raw=raw_results
+                )
         else:
             if corpus:
                 return corpus

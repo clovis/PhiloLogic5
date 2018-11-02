@@ -6,20 +6,11 @@ import struct
 from .HitWrapper import HitWrapper
 from .utils import smash_accents
 
-obj_dict = {'doc': 1, 'div1': 2, 'div2': 3, 'div3': 4, 'para': 5, 'sent': 6, 'word': 7}
+obj_dict = {"doc": 1, "div1": 2, "div2": 3, "div3": 4, "para": 5, "sent": 6, "word": 7}
 
 
 class HitList(object):
-    def __init__(self,
-                 filename,
-                 words,
-                 dbh,
-                 doc=0,
-                 byte=6,
-                 method="proxy",
-                 methodarg=3,
-                 sort_order=None,
-                 raw=False):
+    def __init__(self, filename, words, dbh, doc=0, byte=6, method="proxy", methodarg=3, sort_order=None, raw=False):
         self.filename = filename
         self.words = words
         self.method = method
@@ -56,7 +47,7 @@ class HitList(object):
                 query += "philo_type in (%s) AND " % ", ".join(['"%s"' % m for m in metadata_types])
             order_params = []
             for s in self.sort_order:
-                order_params.append('%s is not null' % s)
+                order_params.append("%s is not null" % s)
             query += " AND ".join(order_params)
             cursor.execute(query)
             metadata = {}
@@ -74,6 +65,7 @@ class HitList(object):
                     break
                 self.sorted_hitlist.append(hit)
                 iter_position += 1
+
             def sort_by_metadata(philo_id):
                 while philo_id:
                     try:
@@ -83,8 +75,8 @@ class HitList(object):
                             break
                         philo_id = philo_id[:-1]
                 return "ZZZZZ"
-            self.sorted_hitlist.sort(key=sort_by_metadata, reverse=False)
 
+            self.sorted_hitlist.sort(key=sort_by_metadata, reverse=False)
 
     def __getitem__(self, n):
         if self.sort_order:
@@ -197,7 +189,7 @@ class HitList(object):
             self.position = n
         buffer = self.fh.read(self.hitsize)
         self.position += 1
-        return (struct.unpack(self.format, buffer))
+        return struct.unpack(self.format, buffer)
 
     def get_total_word_count(self):
         philo_ids = []
@@ -241,6 +233,7 @@ class CombinedHitlist(object):
         #         self.combined_hitlist.append(hit)
         #         sentence_ids.add(sentence_id)
         from collections import defaultdict
+
         sentence_counts = defaultdict(int)
         for pos, hitlist in enumerate(hitlists):
             max_sent_count = 2
@@ -285,10 +278,10 @@ class NoHits(object):
         return 0
 
     def __getitem__(self, item):
-        return ''
+        return ""
 
     def __iter__(self):
-        return ''
+        return ""
 
     def finish(self):
         return

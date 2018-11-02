@@ -3,6 +3,7 @@
 
 import re
 
+
 def parse_query(query_terms, config):
     """Parse query function."""
     for pattern, replacement in config.query_parser_regex:

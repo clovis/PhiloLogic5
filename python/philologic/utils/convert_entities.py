@@ -7,6 +7,7 @@ import re
 
 entities_match = re.compile(r"&#?\w+;")
 
+
 def convert_entities(text):
     def fixup(m):
         text = m.group(0)
@@ -26,4 +27,5 @@ def convert_entities(text):
             except KeyError:
                 pass
         return text  # leave as is
+
     return entities_match.sub(fixup, text)

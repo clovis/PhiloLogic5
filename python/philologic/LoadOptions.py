@@ -1,7 +1,6 @@
 #!/usr/bin env python3
 
 
-
 import imp
 import os
 import sys
@@ -75,56 +74,62 @@ class LoadOptions(object):
     def setup_parser(self):
         usage = "usage: %prog [options] database_name files"
         parser = OptionParser(usage=usage)
-        parser.add_option("-a",
-                          "--app_dir",
-                          type="string",
-                          dest="web_app_dir",
-                          help="Define custom location for the web app directory")
-        parser.add_option("-b",
-                          "--bibliography",
-                          type="string",
-                          dest="bibliography",
-                          help="Defines a file containing the document-level bibliography of the texts")
+        parser.add_option(
+            "-a",
+            "--app_dir",
+            type="string",
+            dest="web_app_dir",
+            help="Define custom location for the web app directory",
+        )
+        parser.add_option(
+            "-b",
+            "--bibliography",
+            type="string",
+            dest="bibliography",
+            help="Defines a file containing the document-level bibliography of the texts",
+        )
         parser.add_option("-c", "--cores", type="int", dest="cores", help="define the number of cores used for parsing")
-        parser.add_option("--custom_functions", type="string", dest="custom_functions", help="copy contents of path for custom functions")
-        parser.add_option("-d",
-                          "--debug",
-                          action="store_true",
-                          default=False,
-                          dest="debug",
-                          help="add debugging to your load")
-        parser.add_option("-D",
-                          "--force_delete",
-                          action="store_true",
-                          default=False,
-                          dest="force_delete",
-                          help="overwrite database without confirmation")
-        parser.add_option("-F",
-                          "--file-list",
-                          action="store_true",
-                          default=False,
-                          dest="file_list",
-                          help="Defines whether the file argument is a file containing fullpaths to the files to load")
-        parser.add_option("-H",
-                          "--header",
-                          type="string",
-                          dest="header",
-                          help="define header type (tei or dc) of files to parse")
-        parser.add_option("-l",
-                          "--load_config",
-                          type="string",
-                          dest="load_config",
-                          help="load external config for specialized load")
-        parser.add_option("-t",
-                          "--file-type",
-                          type="string",
-                          dest="file_type",
-                          help="Define file type for parsing: plain_text, xml, or html")
-        parser.add_option("-w",
-                          "--use-webconfig",
-                          type="string",
-                          dest="web_config",
-                          help="use predefined web_config.cfg file")
+        parser.add_option(
+            "--custom_functions",
+            type="string",
+            dest="custom_functions",
+            help="copy contents of path for custom functions",
+        )
+        parser.add_option(
+            "-d", "--debug", action="store_true", default=False, dest="debug", help="add debugging to your load"
+        )
+        parser.add_option(
+            "-D",
+            "--force_delete",
+            action="store_true",
+            default=False,
+            dest="force_delete",
+            help="overwrite database without confirmation",
+        )
+        parser.add_option(
+            "-F",
+            "--file-list",
+            action="store_true",
+            default=False,
+            dest="file_list",
+            help="Defines whether the file argument is a file containing fullpaths to the files to load",
+        )
+        parser.add_option(
+            "-H", "--header", type="string", dest="header", help="define header type (tei or dc) of files to parse"
+        )
+        parser.add_option(
+            "-l", "--load_config", type="string", dest="load_config", help="load external config for specialized load"
+        )
+        parser.add_option(
+            "-t",
+            "--file-type",
+            type="string",
+            dest="file_type",
+            help="Define file type for parsing: plain_text, xml, or html",
+        )
+        parser.add_option(
+            "-w", "--use-webconfig", type="string", dest="web_config", help="use predefined web_config.cfg file"
+        )
         return parser
 
     def parse(self, argv):
@@ -132,14 +137,14 @@ class LoadOptions(object):
         parser = self.setup_parser()
         options, args = parser.parse_args(argv[1:])
         try:
-            self.values['dbname'] = args[0]
+            self.values["dbname"] = args[0]
             args.pop(0)
             if options.file_list:
                 with open(args[-1]) as fh:
                     for line in fh:
                         self.values["files"].append(line.strip())
-            elif args[-1].endswith('/') or os.path.isdir(args[-1]):
-                self.values['files'] = glob(args[-1] + '/*')
+            elif args[-1].endswith("/") or os.path.isdir(args[-1]):
+                self.values["files"] = glob(args[-1] + "/*")
             else:
                 self.values["files"] = args[:]
             if len(self.values["files"]) == 0:
@@ -147,11 +152,14 @@ class LoadOptions(object):
                 exit()
 
         except IndexError:
-            print(("\nError: you did not supply a database name or a path for your file(s) to be loaded\n"), file=sys.stderr)
+            print(
+                ("\nError: you did not supply a database name or a path for your file(s) to be loaded\n"),
+                file=sys.stderr,
+            )
             parser.print_help()
             sys.exit()
         for a in dir(options):
-            if not a.startswith('__') and not isinstance(getattr(options, a), collections.Callable):
+            if not a.startswith("__") and not isinstance(getattr(options, a), collections.Callable):
                 value = getattr(options, a)
                 if a == "load_config" and value:
                     load_config = LoadConfig()
@@ -164,7 +172,7 @@ class LoadOptions(object):
                     if value == "plain_text":
                         self.values["parser_factory"] = PlainTextParser.PlainTextParser
                 elif a == "navigable_objects" and value is not None:
-                    self.values["navigable_objects"] = [v.strip() for v in value.split(',')]
+                    self.values["navigable_objects"] = [v.strip() for v in value.split(",")]
                 elif a == "web_config":
                     if value is not None:
                         with open(value) as f:
@@ -211,13 +219,14 @@ class LoadOptions(object):
 
 class LoadConfig(object):
     """Load a load_config file"""
+
     def __init__(self):
         self.config = {}
 
     def parse(self, load_config_file_path):
         load_config_file = imp.load_source("external_load_config", load_config_file_path)
         for a in dir(load_config_file):
-            if not a.startswith('__') and not isinstance(getattr(load_config_file, a), collections.Callable):
+            if not a.startswith("__") and not isinstance(getattr(load_config_file, a), collections.Callable):
                 value = getattr(config_file, a)
                 if value:
                     if a == "words_to_index":

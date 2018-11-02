@@ -91,7 +91,18 @@ class CompoundStack(object):
     CompoundStack doesn't actually do deep object arithmetic or recursion--it handles parallel objects manually,
     and passes other calls on to the NewStack."""
 
-    def __init__(self, types, page, docid=0, out=None, ref="", line="", graphic="", factory=CompoundRecord, p_factory=ParallelRecord):
+    def __init__(
+        self,
+        types,
+        page,
+        docid=0,
+        out=None,
+        ref="",
+        line="",
+        graphic="",
+        factory=CompoundRecord,
+        p_factory=ParallelRecord,
+    ):
         self.stack = NewStack(types[:], out, factory)
         self.out = out
         self.v_max = self.stack.v_max
@@ -284,7 +295,7 @@ class NewStack(object):
         i = self.index(type)
         if type in self.types:
             if type in self:
-                descendants = self.types[i + 1:]
+                descendants = self.types[i + 1 :]
                 descendants.reverse()
                 for d in descendants:
                     self.pull(d, byte)

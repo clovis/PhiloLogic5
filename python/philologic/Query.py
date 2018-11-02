@@ -14,17 +14,19 @@ from philologic.QuerySyntax import group_terms, parse_query
 os.environ["PATH"] += ":/usr/local/bin/"
 
 
-def query(db,
-          terms,
-          corpus_file=None,
-          corpus_size=0,
-          method=None,
-          method_arg=None,
-          limit=3000,
-          filename="",
-          query_debug=False,
-          sort_order=None,
-          raw_results=False):
+def query(
+    db,
+    terms,
+    corpus_file=None,
+    corpus_size=0,
+    method=None,
+    method_arg=None,
+    limit=3000,
+    filename="",
+    query_debug=False,
+    sort_order=None,
+    raw_results=False,
+):
     sys.stdout.flush()
     tstart = datetime.now()
 
@@ -38,7 +40,7 @@ def query(db,
         hfile = str(origpid) + ".hitlist"
     dir = db.path + "/hitlists/"
     filename = filename or (dir + hfile)
-    hl = open(filename, "w", encoding='utf8')
+    hl = open(filename, "w", encoding="utf8")
     err = open("/dev/null", "w")
     freq_file = db.path + "/frequencies/normalized_word_frequencies"
     if query_debug:
@@ -60,7 +62,7 @@ def query(db,
                 args.extend(("--corpusfile", corpus_file))
             args.append(db.path)
             if method and method_arg:
-                args.extend((method,str(method_arg)))
+                args.extend((method, str(method_arg)))
 
             worker = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=hl, stderr=err, env=os.environ)
             # worker2 = subprocess.Popen("head -c 1", stdin=subprocess.PIPE, stdout=worker.stdin, stderr=err)
@@ -113,16 +115,17 @@ def split_terms(grouped):
     for group in grouped:
         if len(group) == 1:
             kind, token = group[0]
-            if kind == "QUOTE" and token.find(" ") > 1:  #we can split quotes on spaces if there is no OR
+            if kind == "QUOTE" and token.find(" ") > 1:  # we can split quotes on spaces if there is no OR
                 for split_tok in token[1:-1].split(" "):
-                    split.append((("QUOTE", '"' + split_tok + '"'), ))
+                    split.append((("QUOTE", '"' + split_tok + '"'),))
             elif kind == "RANGE":
-                split.append((("TERM", token), ))
+                split.append((("TERM", token),))
             else:
                 split.append(group)
         else:
             split.append(group)
     return split
+
 
 def expand_query_not(split, freq_file, dest_fh, lowercase=True):
     first = True
@@ -134,10 +137,10 @@ def expand_query_not(split, freq_file, dest_fh, lowercase=True):
             try:
                 dest_fh.write("\n")
             except TypeError:
-                dest_fh.write(b'\n')
+                dest_fh.write(b"\n")
             dest_fh.flush()
 
-        #find all the NOT terms and separate them out by type
+        # find all the NOT terms and separate them out by type
         exclude = []
         term_exclude = []
         quote_exclude = []
@@ -145,7 +148,7 @@ def expand_query_not(split, freq_file, dest_fh, lowercase=True):
         for i, g in enumerate(group):
             kind, token = g
             if kind == "NOT":
-                exclude = group[i + 1:]
+                exclude = group[i + 1 :]
                 group = group[:i]
                 break
         cut_proc = subprocess.Popen("cut -f 2 | sort | uniq", stdin=subprocess.PIPE, stdout=dest_fh, shell=True)
@@ -181,12 +184,13 @@ def grep_word(token, freq_file, dest_fh, lowercase=True):
     norm_tok_uni_chars = [i for i in unicodedata.normalize("NFKD", token) if not unicodedata.combining(i)]
     norm_tok = "".join(norm_tok_uni_chars)
     import sys
+
     print("NORM TOK", norm_tok, file=sys.stderr)
     try:
-        grep_command = ['egrep', '-a', '^%s[[:blank:]]' % norm_tok, freq_file]
+        grep_command = ["egrep", "-a", "^%s[[:blank:]]" % norm_tok, freq_file]
         grep_proc = subprocess.Popen(grep_command, stdout=dest_fh)
     except (UnicodeEncodeError, TypeError):
-        grep_command = ['egrep', '-a', b'^%s[[:blank:]]' % norm_tok.encode('utf8'), freq_file]
+        grep_command = ["egrep", "-a", b"^%s[[:blank:]]" % norm_tok.encode("utf8"), freq_file]
         grep_proc = subprocess.Popen(grep_command, stdout=dest_fh)
     return grep_proc
 
@@ -197,29 +201,35 @@ def invert_grep(token, in_fh, dest_fh, lowercase=True):
     norm_tok_uni_chars = [i for i in unicodedata.normalize("NFKD", token) if not unicodedata.combining(i)]
     norm_tok = "".join(norm_tok_uni_chars)
     try:
-        grep_command = ['egrep', '-a', '-v', '^%s[[:blank:]]' % norm_tok]
+        grep_command = ["egrep", "-a", "-v", "^%s[[:blank:]]" % norm_tok]
         grep_proc = subprocess.Popen(grep_command, stdin=in_fh, stdout=dest_fh)
     except (UnicodeEncodeError, TypeError):
-        grep_command = ['egrep', '-a', '-v', b'^%s[[:blank:]]' % norm_tok.encode('utf8')]
+        grep_command = ["egrep", "-a", "-v", b"^%s[[:blank:]]" % norm_tok.encode("utf8")]
         grep_proc = subprocess.Popen(grep_command, stdin=in_fh, stdout=dest_fh)
     return grep_proc
 
 
 def grep_exact(token, freq_file, dest_fh):
     try:
-        grep_proc = subprocess.Popen(["egrep", '-a', b"[[:blank:]]%s$" % token[1:-1], freq_file], stdout=dest_fh)
+        grep_proc = subprocess.Popen(["egrep", "-a", b"[[:blank:]]%s$" % token[1:-1], freq_file], stdout=dest_fh)
     except (UnicodeEncodeError, TypeError):
-        grep_proc = subprocess.Popen(["egrep", '-a', b"[[:blank:]]%s$" % token[1:-1].encode('utf8'), freq_file], stdout=dest_fh)
+        grep_proc = subprocess.Popen(
+            ["egrep", "-a", b"[[:blank:]]%s$" % token[1:-1].encode("utf8"), freq_file], stdout=dest_fh
+        )
     return grep_proc
 
 
 def invert_grep_exact(token, in_fh, dest_fh):
-    #don't strip accent or case, exact match only.
+    # don't strip accent or case, exact match only.
     try:
-        grep_proc = subprocess.Popen(["egrep", "-a", "-v", b"[[:blank:]]%s$" % token[1:-1]], stdin=in_fh, stdout=dest_fh)
+        grep_proc = subprocess.Popen(
+            ["egrep", "-a", "-v", b"[[:blank:]]%s$" % token[1:-1]], stdin=in_fh, stdout=dest_fh
+        )
     except (UnicodeEncodeError, TypeError):
-        grep_proc = subprocess.Popen(["egrep", "-a", "-v", b"[[:blank:]]%s$" % token[1:-1].encode('utf8')], stdin=in_fh, stdout=dest_fh)
-    #can't wait because input isn't ready yet.
+        grep_proc = subprocess.Popen(
+            ["egrep", "-a", "-v", b"[[:blank:]]%s$" % token[1:-1].encode("utf8")], stdin=in_fh, stdout=dest_fh
+        )
+    # can't wait because input isn't ready yet.
     return grep_proc
 
 
@@ -238,6 +248,7 @@ if __name__ == "__main__":
 
     fake_db = Fake_DB()
     from philologic.Config import Config, db_locals_defaults, db_locals_header
+
     fake_db.path = path + "/data/"
     fake_db.locals = Config(fake_db.path + "/db.locals.py", db_locals_defaults, db_locals_header)
     fake_db.encoding = "utf-8"

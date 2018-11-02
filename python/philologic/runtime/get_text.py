@@ -8,12 +8,11 @@ from lxml import etree
 from philologic.DB import DB
 from philologic.HitWrapper import ObjectWrapper
 
-from .ObjectFormatter import (adjust_bytes, format_concordance,
-                              format_text_object)
+from .ObjectFormatter import adjust_bytes, format_concordance, format_text_object
 
 
 def get_text(hit, start_byte, length, path):
-    file_path = path + '/data/TEXT/' + hit.doc.filename
+    file_path = path + "/data/TEXT/" + hit.doc.filename
     with open(file_path, "rb") as text_file:
         text_file.seek(start_byte)
         return text_file.read(length)
@@ -37,11 +36,11 @@ def get_text_obj(obj, config, request, word_regex, note=False, images=True):
         path += "/data/TEXT/" + filename
     else:
         ## workaround for when no filename is returned with the full philo_id of the object
-        philo_id = str(obj.philo_id[0]) + ' 0 0 0 0 0 0'
+        philo_id = str(obj.philo_id[0]) + " 0 0 0 0 0 0"
         c = obj.db.dbh.cursor()
-        c.execute("select filename from toms where philo_type='doc' and philo_id =? limit 1", (philo_id, ))
+        c.execute("select filename from toms where philo_type='doc' and philo_id =? limit 1", (philo_id,))
         path += "/data/TEXT/" + c.fetchone()["filename"]
-    with open(path, 'rb') as file:
+    with open(path, "rb") as file:
         obj_start_byte = int(obj.start_byte)
         file.seek(obj_start_byte)
         width = int(obj.end_byte) - obj_start_byte
@@ -53,9 +52,18 @@ def get_text_obj(obj, config, request, word_regex, note=False, images=True):
     if request.start_byte:
         request.start_byte = request.start_byte - obj_start_byte
         request.end_byte = request.end_byte - obj_start_byte
-    formatted_text, imgs = format_text_object(obj, raw_text, config, request, word_regex,
-                                              byte_offsets=byte_offsets, note=note, images=images,
-                                              start_byte=request.start_byte, end_byte=request.end_byte)
+    formatted_text, imgs = format_text_object(
+        obj,
+        raw_text,
+        config,
+        request,
+        word_regex,
+        byte_offsets=byte_offsets,
+        note=note,
+        images=images,
+        start_byte=request.start_byte,
+        end_byte=request.end_byte,
+    )
     if images:
         return formatted_text, imgs
     else:
@@ -65,8 +73,8 @@ def get_text_obj(obj, config, request, word_regex, note=False, images=True):
 def get_tei_header(request, config):
     path = config.db_path
     db = DB(path + "/data")
-    obj = ObjectWrapper(request['philo_id'].split(), db)
-    filename = path + '/data/TEXT/' + obj.filename
+    obj = ObjectWrapper(request["philo_id"].split(), db)
+    filename = path + "/data/TEXT/" + obj.filename
     parser = etree.XMLParser(remove_blank_text=True, recover=True)
     xml_tree = etree.parse(filename, parser)
     header = xml_tree.find("teiHeader")
@@ -74,13 +82,13 @@ def get_tei_header(request, config):
         header_text = etree.tostring(header, pretty_print=True)
     except TypeError as e:  # workaround for when lxml doesn't find the header for whatever reason
         start = False
-        header_text = ''
+        header_text = ""
         with open(filename) as file:
             file_content = file.read()
             try:
-                start_header_index = re.search(r'<teiheader', file_content, re.I).start()
-                end_header_index = re.search(r'</teiheader>', file_content, re.I).end()
+                start_header_index = re.search(r"<teiheader", file_content, re.I).start()
+                end_header_index = re.search(r"</teiheader>", file_content, re.I).end()
             except AttributeError:  # tag not found
                 return ""
             header_text = file_content[start_header_index:end_header_index]
-    return header_text.replace('<', '&lt;').replace('>', '&gt;')
+    return header_text.replace("<", "&lt;").replace(">", "&gt;")

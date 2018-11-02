@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Page intervals"""
 
+
 def page_interval(num, results, start, end):
     """Return page intervals"""
     start = int(start)

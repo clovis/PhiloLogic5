@@ -16,7 +16,7 @@ os.environ["PATH"] += ":/usr/local/bin/"
 
 def metadata_query(db, filename, param_dicts, sort_order, raw_results=False):
     """Prepare and execute SQL metadata query."""
-    if db.locals['debug']:
+    if db.locals["debug"]:
         print("METADATA_QUERY:", param_dicts, file=sys.stderr)
     prev = None
     for d in param_dicts:
@@ -72,25 +72,29 @@ def query_lowlevel(db, param_dict, sort_order):
         norm_path = db.path + "/frequencies/normalized_" + column + "_frequencies"
         for v in values:
             parsed = parse_query(v)
-            if db.locals['debug']:
+            if db.locals["debug"]:
                 print("METADATA_TOKENS:", parsed, file=sys.stderr)
             grouped = group_terms(parsed)
-            if db.locals['debug']:
+            if db.locals["debug"]:
                 print("METADATA_SYNTAX GROUPED:", grouped, file=sys.stderr)
             expanded = expand_grouped_query(grouped, norm_path)
-            if db.locals['debug']:
+            if db.locals["debug"]:
                 print("METADATA_SYNTAX EXPANDED:", expanded, file=sys.stderr)
             sql_clause = make_grouped_sql_clause(expanded, column, db)
-            if db.locals['debug']:
+            if db.locals["debug"]:
                 print("SQL_SYNTAX:", sql_clause, file=sys.stderr)
             clauses.append(sql_clause)
     if not sort_order:
         sort_order = ["rowid"]
     if clauses:
-        query = "SELECT philo_id FROM toms WHERE " + " AND ".join("(%s)" % c for c in clauses) + " order by %s;" % ", ".join(sort_order)
+        query = (
+            "SELECT philo_id FROM toms WHERE "
+            + " AND ".join("(%s)" % c for c in clauses)
+            + " order by %s;" % ", ".join(sort_order)
+        )
     else:
         query = "SELECT philo_id FROM toms order by %s;" % ", ".join(sort_order)
-    if db.locals['debug']:
+    if db.locals["debug"]:
         print("INNER QUERY: ", "%s %% %s" % (query, vars), sort_order, file=sys.stderr)
     results = db.dbh.execute(query, vars)
     return results
@@ -169,11 +173,11 @@ def make_grouped_sql_clause(expanded, column, db):
                 lower, upper = first_value.split("-")
                 if not lower:
                     c = db.dbh.cursor()
-                    c.execute('select min(%s) from toms' % column)
+                    c.execute("select min(%s) from toms" % column)
                     lower = str(c.fetchone()[0])
                 if not upper:
                     c = db.dbh.cursor()
-                    c.execute('select max(%s) from toms' % column)
+                    c.execute("select max(%s) from toms" % column)
                     upper = str(c.fetchone()[0])
                 clause += "(%s >= %s AND %s <= %s)" % (column, esc(lower), column, esc(upper))
                 if first_group:
@@ -221,13 +225,11 @@ def make_grouped_sql_clause(expanded, column, db):
 
 
 def metadata_pattern_search(term, path):
-    command = ['egrep', '-awie', "[[:blank:]]?%s" % term, '%s' % path]
+    command = ["egrep", "-awie", "[[:blank:]]?%s" % term, "%s" % path]
     grep = subprocess.Popen(command, stdout=subprocess.PIPE, env=os.environ)
-    cut = subprocess.Popen(["cut", "-f", "2"],
-                           stdin=grep.stdout,
-                           stdout=subprocess.PIPE)
+    cut = subprocess.Popen(["cut", "-f", "2"], stdin=grep.stdout, stdout=subprocess.PIPE)
     match, stderr = cut.communicate()
-    matches = [i for i in match.decode('utf8', 'ignore').split('\n') if i]
+    matches = [i for i in match.decode("utf8", "ignore").split("\n") if i]
     return matches
 
 

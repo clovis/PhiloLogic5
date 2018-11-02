@@ -8,17 +8,18 @@ from philologic import OHCOVector
 
 
 class PlainTextParser(object):
-
-    def __init__(self,
-                 output,
-                 docid,
-                 filesize,
-                 token_regex=r"(\w+)|([\.\?\!])",
-                 xpaths=[("doc", "./")],
-                 metadata_xpaths=[],
-                 suppress_tags=[],
-                 pseudo_empty_tags=[],
-                 known_metadata={}):
+    def __init__(
+        self,
+        output,
+        docid,
+        filesize,
+        token_regex=r"(\w+)|([\.\?\!])",
+        xpaths=[("doc", "./")],
+        metadata_xpaths=[],
+        suppress_tags=[],
+        pseudo_empty_tags=[],
+        known_metadata={},
+    ):
         self.types = ["doc", "div1", "div2", "div3", "para", "sent", "word"]
         self.parallel_type = "page"
         self.output = output
@@ -41,7 +42,7 @@ class PlainTextParser(object):
 
     def parse(self, input):
         """Top level function for reading a file and printing out the output."""
-        #print >> sys.stderr, "SingleParser parsing"
+        # print >> sys.stderr, "SingleParser parsing"
         self.input = input
         content = input.read().decode("utf-8")
         buffer_pos = 0
@@ -62,8 +63,8 @@ class PlainTextParser(object):
                 tok_type = "sent"
 
             tok_length = len(tok.group().encode("utf-8"))
-            tok_start = len(content[buffer_pos:tok.start()].encode("utf-8"))
-            tok_end = len(content[buffer_pos:tok.end()].encode("utf-8"))
+            tok_start = len(content[buffer_pos : tok.start()].encode("utf-8"))
+            tok_end = len(content[buffer_pos : tok.end()].encode("utf-8"))
 
             start_byte = byte_pos + tok_start
             end_byte = byte_pos + tok_end
@@ -92,9 +93,7 @@ if __name__ == "__main__":
         print(docid, fn, file=sys.stderr)
         size = os.path.getsize(fn)
         fh = open(fn)
-        parser = PlainTextParser(sys.stdout,
-                                 docid,
-                                 size,
-                                 token_regex=r"(\w+)|([\.\?\!])",
-                                 known_metadata={"filename": fn})
+        parser = PlainTextParser(
+            sys.stdout, docid, size, token_regex=r"(\w+)|([\.\?\!])", known_metadata={"filename": fn}
+        )
         parser.parse(fh)

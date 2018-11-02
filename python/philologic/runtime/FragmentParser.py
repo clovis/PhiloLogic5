@@ -20,7 +20,7 @@ class FragmentParser:
         self.stack = []
 
     def start(self, tag, attrib):
-        #print >> sys.stderr, "START: " + tag + repr(attrib)
+        # print >> sys.stderr, "START: " + tag + repr(attrib)
         self.stack.append(tag)
         for k, v in list(attrib.items()):
             no_ns_k = re.sub(r"^.*?:", "", k)
@@ -36,7 +36,7 @@ class FragmentParser:
 
     def end(self, tag):
         if len(self.stack) and self.stack[-1] == tag:
-            #print >> sys.stderr, "END: " + tag
+            # print >> sys.stderr, "END: " + tag
             self.current_tail = self.current_el
             self.stack.pop()
             self.current_el = self.current_el.getparent()
@@ -88,7 +88,7 @@ class LXMLTreeDriver:
 
 class FragmentStripper:
     def __init__(self):
-        self.buffer = ''
+        self.buffer = ""
 
     def feed(self, *event):
         (kind, content, offset, name, attributes) = event
@@ -110,9 +110,12 @@ def parse(text):
         # we use LXML's HTML parser which is more flexible and then feed the result to fragment parser
         parser = etree.HTMLParser()
         tree = etree.fromstring(text, parser=parser)
-        new_text = etree.tostring(tree,
-                                  method="xml").replace("<html><body>", '').replace("</body></html>", '').replace(
-                                      "philohighlight", "philoHighlight")
+        new_text = (
+            etree.tostring(tree, method="xml")
+            .replace("<html><body>", "")
+            .replace("</body></html>", "")
+            .replace("philohighlight", "philoHighlight")
+        )
         parser = FragmentParser()
         driver = LXMLTreeDriver(target=parser)
         feeder = st.ShlaxIngestor(target=driver)

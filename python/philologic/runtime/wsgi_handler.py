@@ -17,8 +17,8 @@ class WSGIHandler(object):
     def __init__(self, environ, config):
         """Initialize class."""
         # Create db object to access config variables
-        db = DB(config.db_path + '/data/')
-        self.path_info = environ.get("PATH_INFO", '')
+        db = DB(config.db_path + "/data/")
+        self.path_info = environ.get("PATH_INFO", "")
         self.query_string = environ["QUERY_STRING"]
         self.script_filename = environ["SCRIPT_FILENAME"]
         self.authenticated = False
@@ -27,7 +27,7 @@ class WSGIHandler(object):
             if "hash" in self.cookies and "timestamp" in self.cookies:
                 h = hashlib.md5()
                 secret = db.locals.secret
-                h.update(environ['REMOTE_ADDR'])
+                h.update(environ["REMOTE_ADDR"])
                 h.update(self.cookies["timestamp"].value)
                 h.update(secret)
                 if self.cookies["hash"].value == h.hexdigest():
@@ -37,21 +37,21 @@ class WSGIHandler(object):
 
         # Check the header for JSON content_type or look for a format=json
         # keyword
-        if 'CONTENT_TYPE' in environ:
-            self.content_type = environ['CONTENT_TYPE']
+        if "CONTENT_TYPE" in environ:
+            self.content_type = environ["CONTENT_TYPE"]
         else:
-            self.content_type = 'text/HTML'
+            self.content_type = "text/HTML"
         # If format is set, it overrides the content_type
         if "format" in self.cgi:
-            if self.cgi['format'][0] == "json":
+            if self.cgi["format"][0] == "json":
                 self.content_type = "application/json"
             else:
-                self.content_type = self.cgi['format'][0] or ''
+                self.content_type = self.cgi["format"][0] or ""
 
         # Make byte a direct attribute of the class since it is a special case and
         # can contain more than one element
         if "byte" in self.cgi:
-            self.byte = self.cgi['byte']
+            self.byte = self.cgi["byte"]
 
         # Temporary fix for search term arguments before new core merge
         method = self["method"] or "proxy"
@@ -67,23 +67,23 @@ class WSGIHandler(object):
         if not arg:
             arg = 0
         self.arg = arg
-        self.cgi['arg'] = [arg]
+        self.cgi["arg"] = [arg]
 
         self.metadata_fields = db.locals["metadata_fields"]
         self.metadata = {}
         num_empty = 0
 
-        self.start = int(self['start'])
-        self.end = int(self['end'])
-        self.results_per_page = int(self['results_per_page'])
+        self.start = int(self["start"])
+        self.end = int(self["end"])
+        self.results_per_page = int(self["results_per_page"])
         if self.start_date:
             try:
-                self.start_date = int(self['start_date'])
+                self.start_date = int(self["start_date"])
             except ValueError:
                 self.start_date = "invalid"
         if self.end_date:
             try:
-                self.end_date = int(self['end_date'])
+                self.end_date = int(self["end_date"])
             except ValueError:
                 self.end_date = "invalid"
 
@@ -95,15 +95,15 @@ class WSGIHandler(object):
                         self.cgi[field][0] = parse_query(self.cgi[field][0], config)
                 # these ifs are to fix the no results you get when you do a
                 # metadata query
-                if self["q"] != '':
+                if self["q"] != "":
                     self.metadata[field] = self.cgi[field][0]
-                elif self.cgi[field][0] != '':
+                elif self.cgi[field][0] != "":
                     self.metadata[field] = self.cgi[field][0]
             # in case of an empty query
             if field not in self.cgi or not self.cgi[field][0]:
                 num_empty += 1
 
-        self.metadata['philo_type'] = self['philo_type']
+        self.metadata["philo_type"] = self["philo_type"]
 
         if num_empty == len(self.metadata_fields):
             self.no_metadata = True
@@ -117,16 +117,15 @@ class WSGIHandler(object):
 
         if "approximate" in self.cgi:
             if "approximate_ratio" in self.cgi:
-                self.approximate_ratio = float(self.cgi["approximate_ratio"][
-                    0]) / 100
+                self.approximate_ratio = float(self.cgi["approximate_ratio"][0]) / 100
             else:
                 self.approximate_ratio = 1
 
-        if 'q' in self.cgi:
-            self.cgi['q'][0] = parse_query(self.cgi['q'][0], config)
+        if "q" in self.cgi:
+            self.cgi["q"][0] = parse_query(self.cgi["q"][0], config)
             if self.approximate == "yes":
-                self.cgi["original_q"] = self.cgi['q'][:]
-                self.cgi['q'][0] = find_similar_words(db, config, self)
+                self.cgi["original_q"] = self.cgi["q"][:]
+                self.cgi["q"][0] = find_similar_words(db, config, self)
             if self.cgi["q"][0] != "":
                 self.no_q = False
             else:

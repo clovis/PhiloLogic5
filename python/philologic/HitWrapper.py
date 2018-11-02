@@ -3,8 +3,9 @@
 
 import sys
 
-TEXT_OBJECT_LEVELS = {'doc': 1, 'div1': 2, 'div2': 3, 'div3': 4, 'para': 5, 'sent': 6, 'word': 7}
+TEXT_OBJECT_LEVELS = {"doc": 1, "div1": 2, "div2": 3, "div3": 4, "para": 5, "sent": 6, "word": 7}
 SHARED_CACHE = {}
+
 
 def _safe_lookup(row, field):
     metadata = ""
@@ -27,7 +28,7 @@ class HitWrapper:
             self.object_type = obj_type
         else:
             try:
-                length = len(hit[:hit.index(0)])
+                length = len(hit[: hit.index(0)])
             except ValueError:
                 length = len(hit)
             if length >= 7:
@@ -41,16 +42,16 @@ class HitWrapper:
             self.words.append(WordWrapper(hit, db, self.start_byte))
             page_i = self["page"]
         else:
-            self.philo_id = hit[:6] + (self.hit[7], )
+            self.philo_id = hit[:6] + (self.hit[7],)
             parent_id = self.hit[:6]
             remaining = list(self.hit[7:])
-            if method == "cooc": #TODO: temp fix for old core...
+            if method == "cooc":  # TODO: temp fix for old core...
                 for start_byte in remaining:
-                    self.words += [parent_id + (start_byte, )]
+                    self.words += [parent_id + (start_byte,)]
                     self.bytes.append(start_byte)
             else:
                 while remaining:
-                    self.words += [parent_id + (remaining.pop(0), )]
+                    self.words += [parent_id + (remaining.pop(0),)]
                     if remaining:
                         self.bytes.append(remaining.pop(0))
             self.bytes.sort()
@@ -110,12 +111,12 @@ class ObjectWrapper:
         self.db = db
         self.hit = hit
         if obj_type:
-            self.philo_id = hit[:TEXT_OBJECT_LEVELS[obj_type]]
+            self.philo_id = hit[: TEXT_OBJECT_LEVELS[obj_type]]
             self.object_type = obj_type
         else:
             self.philo_id = hit
             try:
-                length = len(hit[:hit.index(0)])
+                length = len(hit[: hit.index(0)])
             except ValueError:
                 length = len(hit)
             self.object_type = [k for k in TEXT_OBJECT_LEVELS if TEXT_OBJECT_LEVELS[k] == length][0]

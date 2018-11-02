@@ -17,8 +17,8 @@ def make_sql_table(table, file_in, db_file="toms.db", indices=[], depth=7):
         conn.text_factory = str
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        columns = 'philo_type,philo_name,philo_id,philo_seq'
-        query = 'create table if not exists %s (%s)' % (table, columns)
+        columns = "philo_type,philo_name,philo_id,philo_seq"
+        query = "create table if not exists %s (%s)" % (table, columns)
         cursor.execute(query)
         with open(file_in) as input_file:
             for sequence, line in enumerate(input_file):
@@ -30,8 +30,11 @@ def make_sql_table(table, file_in, db_file="toms.db", indices=[], depth=7):
                     row["philo_name"] = philo_name
                     row["philo_id"] = " ".join(fields[:depth])
                     row["philo_seq"] = sequence
-                    insert = "INSERT INTO %s (%s) values (%s);" % (table, ",".join(list(row.keys())), ",".join(
-                        "?" for i in range(len(row))))
+                    insert = "INSERT INTO %s (%s) values (%s);" % (
+                        table,
+                        ",".join(list(row.keys())),
+                        ",".join("?" for i in range(len(row))),
+                    )
                     try:
                         cursor.execute(insert, list(row.values()))
                     except sqlite3.OperationalError:
@@ -46,52 +49,52 @@ def make_sql_table(table, file_in, db_file="toms.db", indices=[], depth=7):
         for index in indices:
             try:
                 if isinstance(index, str):
-                    index = (index, )
-                index_name = '%s_%s_index' % (table, '_'.join(index))
-                index = ','.join(index)
-                cursor.execute('create index if not exists %s on %s (%s)' % (index_name, table, index))
+                    index = (index,)
+                index_name = "%s_%s_index" % (table, "_".join(index))
+                index = ",".join(index)
+                cursor.execute("create index if not exists %s on %s (%s)" % (index_name, table, index))
             except sqlite3.OperationalError:
                 pass
         conn.commit()
         conn.close()
 
         if not loader_obj.debug:
-            os.system('rm %s' % file_in)
+            os.system("rm %s" % file_in)
 
     return inner_make_sql_table
 
 
 def word_frequencies(loader_obj):
-    print('%s: Generating word frequencies...' % time.ctime())
-    frequencies = loader_obj.destination + '/frequencies'
-    os.system('mkdir %s' % frequencies)
+    print("%s: Generating word frequencies..." % time.ctime())
+    frequencies = loader_obj.destination + "/frequencies"
+    os.system("mkdir %s" % frequencies)
     output = open(frequencies + "/word_frequencies", "w")
-    for line in open(loader_obj.destination + '/WORK/all_frequencies'):
+    for line in open(loader_obj.destination + "/WORK/all_frequencies"):
         count, word = tuple(line.split())
-        print(word + '\t' + count, file=output)
+        print(word + "\t" + count, file=output)
     output.close()
 
 
 def normalized_word_frequencies(loader_obj):
-    print('%s: Generating normalized word frequencies...' % time.ctime())
-    frequencies = loader_obj.destination + '/frequencies'
+    print("%s: Generating normalized word frequencies..." % time.ctime())
+    frequencies = loader_obj.destination + "/frequencies"
     output = open(frequencies + "/normalized_word_frequencies", "w")
-    for line in open(frequencies + '/word_frequencies'):
+    for line in open(frequencies + "/word_frequencies"):
         word, count = line.split("\t")
         norm_word = word.lower()
         norm_word = [i for i in unicodedata.normalize("NFKD", norm_word) if not unicodedata.combining(i)]
-        norm_word = ''.join(norm_word)
+        norm_word = "".join(norm_word)
         print(norm_word + "\t" + word, file=output)
     output.close()
 
 
 def metadata_frequencies(loader_obj):
-    print('%s: Generating metadata frequencies...' % time.ctime())
-    frequencies = loader_obj.destination + '/frequencies'
-    conn = sqlite3.connect(loader_obj.destination + '/toms.db')
+    print("%s: Generating metadata frequencies..." % time.ctime())
+    frequencies = loader_obj.destination + "/frequencies"
+    conn = sqlite3.connect(loader_obj.destination + "/toms.db")
     cursor = conn.cursor()
     for field in loader_obj.metadata_fields:
-        query = 'select %s, count(*) from toms group by %s order by count(%s) desc' % (field, field, field)
+        query = "select %s, count(*) from toms group by %s order by count(%s) desc" % (field, field, field)
         try:
             cursor.execute(query)
             output = open(frequencies + "/%s_frequencies" % field, "w")
@@ -99,19 +102,21 @@ def metadata_frequencies(loader_obj):
                 if result[0] != None:
                     val = result[0]
                     clean_val = val.replace("\n", " ").replace("\t", "")
-                    print(clean_val + '\t' + str(result[1]), file=output)
+                    print(clean_val + "\t" + str(result[1]), file=output)
             output.close()
         except sqlite3.OperationalError:
             loader_obj.metadata_fields_not_found.append(field)
     if loader_obj.metadata_fields_not_found:
-        print('The following fields were not found in the input corpus %s' % ', '.join(
-            loader_obj.metadata_fields_not_found))
+        print(
+            "The following fields were not found in the input corpus %s"
+            % ", ".join(loader_obj.metadata_fields_not_found)
+        )
     conn.close()
 
 
 def normalized_metadata_frequencies(loader_obj):
-    print('%s: Generating normalized metadata frequencies...' % time.ctime())
-    frequencies = loader_obj.destination + '/frequencies'
+    print("%s: Generating normalized metadata frequencies..." % time.ctime())
+    frequencies = loader_obj.destination + "/frequencies"
     for field in loader_obj.metadata_fields:
         try:
             output = open(frequencies + "/normalized_" + field + "_frequencies", "w")
@@ -119,7 +124,7 @@ def normalized_metadata_frequencies(loader_obj):
                 word, count = line.split("\t")
                 norm_word = word.lower()
                 norm_word = [i for i in unicodedata.normalize("NFKD", norm_word) if not unicodedata.combining(i)]
-                norm_word = ''.join(norm_word)
+                norm_word = "".join(norm_word)
                 print(norm_word + "\t" + word, file=output)
             output.close()
         except:
@@ -136,8 +141,12 @@ def normalize_divs_post(*columns):
     return normalize_these_columns_post
 
 
-DefaultPostFilters = [word_frequencies, normalized_word_frequencies, metadata_frequencies,
-                      normalized_metadata_frequencies]
+DefaultPostFilters = [
+    word_frequencies,
+    normalized_word_frequencies,
+    metadata_frequencies,
+    normalized_metadata_frequencies,
+]
 
 
 def set_default_postfilters(postfilters=DefaultPostFilters):

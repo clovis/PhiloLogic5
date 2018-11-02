@@ -4,6 +4,7 @@
 
 from math import log
 
+
 def pointwise_mutual_information(total_word_count, collocate_count, collocate, cursor):
     """Calculate Pointwise Mutual Information."""
     if collocate_count < 5:
