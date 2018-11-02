@@ -14,6 +14,7 @@ from philologic.OHCOVector import Record
 # Default filters
 def get_word_counts(_, text):
     """Lowercase and count words"""
+    attrib_set = set()
     with open(text["raw"] + ".tmp", "w") as tmp_file:
         object_types = ['doc', 'div1', 'div2', 'div3', 'para', 'sent', 'word']
         counts = [0 for i in range(5)]
@@ -32,8 +33,10 @@ def get_word_counts(_, text):
                         record.attrib['word_count'] = counts[d]
                         counts[d] = 0
                 print(record, file=tmp_file)
+                attrib_set.update(attrib.keys())
     os.remove(text["raw"])
     os.rename(text["raw"] + ".tmp", text["raw"])
+    return attrib_set
 
 
 def generate_words_sorted(loader_obj, text):
@@ -88,6 +91,7 @@ def prev_next_obj(*philo_types):
         record_dict = {}
         temp_file = text['raw'] + '.tmp'
         output_file = open(temp_file, 'w')
+        attrib_set = set()
         with open(text['sortedtoms']) as filehandle:
             for line in filehandle:
                 philo_type, word, philo_id, attrib = line.split('\t')
@@ -107,6 +111,8 @@ def prev_next_obj(*philo_types):
                 else:
                     record.attrib['prev'] = ''
                     record_dict[philo_type] = record
+                attrib_set.update(attrib.keys())
+
         philo_types.reverse()
         for obj in philo_types:
             try:
@@ -121,6 +127,7 @@ def prev_next_obj(*philo_types):
                                                                 text["sortedtoms"])
         os.system(tomscommand)
         os.remove(temp_file)
+        return attrib_set
 
     return inner_prev_next_obj
 

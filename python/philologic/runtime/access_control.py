@@ -8,6 +8,7 @@ import re
 import socket
 import sys
 import time
+from urllib.parse import unquote
 
 from philologic.DB import DB
 
@@ -126,6 +127,7 @@ def login_access(environ, request, config, headers):
 
 def check_login_info(config, request):
     login_file_path = os.path.join(config.db_path, "data/logins.txt")
+    unquoted_password = unquote(request.password)
     if os.path.exists(login_file_path):
         with open(login_file_path) as password_file:
             for line in password_file:
@@ -135,7 +137,7 @@ def check_login_info(config, request):
                 fields = line.split('\t')
                 user = fields[0]
                 passwd = fields[1]
-                if user == request.username and passwd == request.password:
+                if user == request.username and passwd == unquoted_password:
                     return True
             return False
     else:

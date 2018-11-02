@@ -20,10 +20,8 @@ def make_sql_table(table, file_in, db_file="toms.db", indices=[], depth=7):
         columns = 'philo_type,philo_name,philo_id,philo_seq'
         query = 'create table if not exists %s (%s)' % (table, columns)
         cursor.execute(query)
-        alter_command = "ALTER TABLE %s ADD COLUMN ?" % table
-        file_in_handle = open(file_in)
-        with file_in_handle:
-            for sequence, line in enumerate(file_in_handle):
+        with open(file_in) as input_file:
+            for sequence, line in enumerate(input_file):
                 philo_type, philo_name, id, attrib = line.split("\t", 3)
                 fields = id.split(None, 8)
                 if len(fields) == 9:
