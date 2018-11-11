@@ -391,7 +391,7 @@ class Loader(object):
         if "options" in metadata:  # cleanup, should do above.
             del metadata["options"]
 
-        print("%s: parsing %d : %s" % (time.ctime(), text["id"], text["name"]))
+        print("%s: parsing %d : %s" % (time.ctime(), text["id"], text["name"]), flush=True)
 
         if "parser_factory" not in options:
             options["parser_factory"] = self.parser_config["parser_factory"]

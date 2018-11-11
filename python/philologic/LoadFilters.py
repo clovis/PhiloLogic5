@@ -33,7 +33,7 @@ def get_word_counts(_, text):
                         record.attrib["word_count"] = counts[d]
                         counts[d] = 0
                 print(record, file=tmp_file)
-                attrib_set.update(attrib.keys())
+                attrib_set.update(record.attrib.keys())
     os.remove(text["raw"])
     os.rename(text["raw"] + ".tmp", text["raw"])
     return attrib_set
@@ -119,7 +119,7 @@ def prev_next_obj(*philo_types):
                 else:
                     record.attrib["prev"] = ""
                     record_dict[philo_type] = record
-                attrib_set.update(attrib.keys())
+                attrib_set.update(record.attrib.keys())
 
         philo_types.reverse()
         for obj in philo_types:
