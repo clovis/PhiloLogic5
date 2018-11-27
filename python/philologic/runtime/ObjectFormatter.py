@@ -13,7 +13,7 @@ from philologic.runtime.link import make_absolute_query_link
 from philologic.utils import convert_entities
 
 BEGIN_MATCH = re.compile(rb"^[^<]*?>")
-START_CUTOFF_MATCH = re.compile(rb"^[^ <]+")
+START_CUTOFF_MATCH = re.compile(rb"^[^ |\n<]+")
 END_MATCH = re.compile(rb"<[^>]*?\Z")
 SPACE_MATCH = re.compile(r" ?([-'])+ ")
 TERM_MATCH = re.compile(r"\w+")
